@@ -1,0 +1,91 @@
+# Akhi Data Builder Pipeline Configuration
+
+# Search Configuration
+search:
+  default_terms:
+    - "Nouman Ali Khan tafsir"
+    - "Mufti Menk lecture"
+    - "Yasir Qadhi hadith"
+    - "Omar Suleiman Islamic lecture"
+    - "Islamic scholar Quran explanation"
+    - "Abdur Raheem Green Islam"
+    - "Hamza Yusuf lecture"
+    - "Bilal Philips Islamic studies"
+  
+  # Duration filters (in seconds)
+  min_duration: 300  # 5 minutes
+  max_duration: 3600  # 1 hour
+  
+  # Results per search term
+  max_results_per_term: 20
+  
+  # Quality filters
+  min_view_count: 1000
+  exclude_keywords:
+    - "music"
+    - "song"
+    - "nasheed"
+    - "debate"
+
+# Download Configuration
+download:
+  max_videos_per_batch: 10
+  audio_format: "mp3"
+  audio_quality: "0"  # Best quality
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+  
+  # Output paths
+  output_template: "%(title)s.%(ext)s"
+  
+# Transcription Configuration
+transcription:
+  model_size: "base"  # tiny, base, small, medium, large
+  device: "cpu"  # cpu, cuda
+  language: "auto"  # auto-detect or specify (en, ar, etc.)
+  
+  # Processing options
+  max_files_per_batch: 5
+  word_timestamps: true
+  speaker_detection: true
+  
+  # Quality thresholds
+  min_confidence: 0.7
+  min_segment_length: 10  # seconds
+
+# QLoRA Formatting Configuration
+qlora:
+  min_segment_words: 50
+  max_segment_words: 500
+  overlap_words: 10
+  
+  # Content filtering
+  exclude_patterns:
+    - "\[Music\]"
+    - "\[Applause\]"
+    - "\[Laughter\]"
+  
+  # Output format
+  instruction_template: "Explain the following Islamic concept or teaching:"
+  response_template: "{content}"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  max_log_size: "10MB"
+  backup_count: 5
+  
+# Pipeline Configuration
+pipeline:
+  # State management
+  auto_save_interval: 10  # Save state every N operations
+  backup_state: true
+  
+  # Error handling
+  max_retries: 3
+  continue_on_error: true
+  
+  # Performance
+  parallel_downloads: false
+  parallel_transcriptions: false
+  max_workers: 4
