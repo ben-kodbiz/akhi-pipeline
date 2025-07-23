@@ -12,6 +12,20 @@ node_modules/
 *.jar
 *.node
 
+# Audio and video files
+*.mp3
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mkv
+*.m4a
+*.wav
+*.aac
+*.ogg
+
 # Git related
 /repo.git/
 *.bfg-report/
