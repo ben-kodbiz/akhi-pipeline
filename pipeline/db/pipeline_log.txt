@@ -1,0 +1,38 @@
+[2025-07-23 14:26:45] Starting full pipeline
+[2025-07-23 14:26:45] Starting search step
+[2025-07-23 14:26:45] Found 0 new videos
+[2025-07-23 14:26:45] Pipeline completed successfully
+[2025-07-23 14:26:51] Starting full pipeline
+[2025-07-23 14:26:51] Starting download step
+[2025-07-23 14:26:51] No videos to download
+[2025-07-23 14:26:51] Pipeline completed successfully
+[2025-07-23 14:26:57] Starting full pipeline
+[2025-07-23 14:26:57] Starting transcription step
+[2025-07-23 14:26:57] Successfully transcribed 0 files
+[2025-07-23 14:26:57] Pipeline completed successfully
+[2025-07-23 14:27:03] Starting full pipeline
+[2025-07-23 14:27:03] Starting JSON formatting step
+[2025-07-23 14:27:03] Successfully generated 3 examples from 1 files
+[2025-07-23 14:27:03] Pipeline completed successfully
+[2025-07-23 14:27:15] Starting full pipeline
+[2025-07-23 14:27:15] Starting search step
+[2025-07-23 14:27:15] Found 0 new videos
+[2025-07-23 14:27:15] Starting download step
+[2025-07-23 14:27:15] No videos to download
+[2025-07-23 14:27:15] Starting transcription step
+[2025-07-23 14:27:15] Successfully transcribed 0 files
+[2025-07-23 14:27:15] Starting JSON formatting step
+[2025-07-23 14:27:15] Successfully generated 3 examples from 1 files
+[2025-07-23 14:27:15] Pipeline completed successfully
+[2025-07-23 19:07:43] Starting full pipeline
+[2025-07-23 19:07:43] Starting search step
+[2025-07-23 19:08:13] Found 0 new videos
+[2025-07-23 19:08:13] Pipeline completed successfully
+[2025-07-23 19:08:41] Starting full pipeline
+[2025-07-23 19:08:41] Starting download step
+[2025-07-23 19:08:41] Downloading 9 videos
+[2025-07-23 19:10:34] Starting full pipeline
+[2025-07-23 19:10:34] Starting download step
+[2025-07-23 19:10:34] Downloading 9 videos
+[2025-07-23 19:12:46] Successfully downloaded 9 videos
+[2025-07-23 19:12:46] Pipeline completed successfully
