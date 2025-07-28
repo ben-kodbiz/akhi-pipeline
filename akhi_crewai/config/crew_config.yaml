@@ -1,0 +1,168 @@
+# CrewAI Agentic System Configuration
+
+# YouTube Search Configuration
+youtube:
+  search:
+    max_results: 50
+    default_duration: "medium"  # short, medium, long
+    quality_filter: "high"
+    language: "en"
+    region: "US"
+  
+  download:
+    audio_format: "mp3"
+    audio_quality: "192"
+    output_dir: "data/audio"
+    max_filesize: "500M"
+    retry_attempts: 3
+    timeout: 300
+
+# Transcription Configuration
+transcription:
+  model_size: "base"  # tiny, base, small, medium, large
+  device: "auto"  # auto, cpu, cuda
+  language: "auto"  # auto or specific language code
+  output_dir: "data/transcripts"
+  include_timestamps: true
+  word_timestamps: false
+
+# Text Processing Configuration
+text_processing:
+  chunking:
+    chunk_size: 1000
+    chunk_overlap: 200
+    separator: "\n\n"
+    preserve_sentences: true
+  
+  embedding:
+    model_name: "all-MiniLM-L6-v2"
+    device: "auto"
+    batch_size: 32
+    normalize_embeddings: true
+
+# FAISS Configuration
+faiss:
+  index_type: "IndexFlatIP"  # IndexFlatIP, IndexIVFFlat, IndexHNSWFlat
+  dimension: 384  # Must match embedding model dimension
+  nlist: 100  # For IVF indices
+  nprobe: 10  # For IVF indices
+  index_dir: "data/embeddings"
+  metadata_file: "data/embeddings/metadata.jsonl"
+
+# Local LLM Configuration
+llm:
+  model_path: "models/llama-2-7b-chat.gguf"
+  context_length: 4096
+  max_tokens: 512
+  temperature: 0.7
+  top_p: 0.9
+  top_k: 40
+  repeat_penalty: 1.1
+  n_gpu_layers: 0  # Set to -1 for full GPU offload
+
+local_llm:
+  provider: "lm_studio"
+  model_name: "lm_studio/qwen-3-14b"  # Updated to match working example
+  base_url: "http://192.168.0.74:1234/v1"  # Updated to match working example
+  api_key: null
+  temperature: 0.7
+  max_tokens: 2048
+
+# CrewAI Agent Configuration
+agents:
+  video_researcher:
+    role: "YouTube Research Assistant"
+    goal: "Find relevant Islamic YouTube videos based on topics and keywords"
+    backstory: "You are an expert Islamic content researcher with deep knowledge of Islamic scholars, topics, and YouTube content. You excel at finding high-quality educational videos."
+    max_iter: 5
+    max_execution_time: 300
+    verbose: true
+    allow_delegation: false
+  
+  transcriber:
+    role: "Audio-to-Text Transcriber"
+    goal: "Download and transcribe YouTube videos with high accuracy"
+    backstory: "You are a professional audio processing specialist with expertise in speech recognition and transcription. You ensure accurate and clean transcripts."
+    max_iter: 3
+    max_execution_time: 600
+    verbose: true
+    allow_delegation: false
+  
+  vector_indexer:
+    role: "Embedding Engineer"
+    goal: "Process transcripts into searchable vector embeddings for semantic retrieval"
+    backstory: "You are a vector database specialist with expertise in semantic search and information retrieval. You create efficient and accurate search indices."
+    max_iter: 3
+    max_execution_time: 300
+    verbose: true
+    allow_delegation: false
+  
+  content_qa:
+    role: "Semantic Retriever and Islamic Knowledge Assistant"
+    goal: "Answer questions and provide summaries using Islamic video content with accuracy and context"
+    backstory: "You are an Islamic knowledge specialist with expertise in retrieval-augmented generation. You provide accurate, contextual answers based on Islamic teachings."
+    max_iter: 5
+    max_execution_time: 180
+    verbose: true
+    allow_delegation: false
+
+# Crew Configuration
+crew:
+  process: "sequential"  # sequential, hierarchical
+  verbose: 2
+  memory: true
+  cache: true
+  max_rpm: 10
+  share_crew: false
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "outputs/crew.log"
+  max_size: "10MB"
+  backup_count: 5
+
+# Output Configuration
+output:
+  base_dir: "outputs"
+  reports_dir: "outputs/reports"
+  results_dir: "outputs/results"
+  format: "json"  # json, yaml, txt
+  include_metadata: true
+  timestamp_format: "%Y%m%d_%H%M%S"
+
+# Performance Configuration
+performance:
+  parallel_downloads: 3
+  parallel_transcriptions: 2
+  batch_embedding_size: 100
+  cache_embeddings: true
+  cleanup_temp_files: true
+
+# Islamic Content Specific
+islamic_content:
+  preferred_scholars:
+    - "Nouman Ali Khan"
+    - "Yasir Qadhi"
+    - "Omar Suleiman"
+    - "Mufti Menk"
+    - "Abdur Raheem Green"
+  
+  topics:
+    - "Quran"
+    - "Hadith"
+    - "Seerah"
+    - "Fiqh"
+    - "Aqeedah"
+    - "Islamic History"
+    - "Tafseer"
+    - "Islamic Ethics"
+  
+  content_filters:
+    - "Islamic"
+    - "Muslim"
+    - "Quran"
+    - "Prophet"
+    - "Allah"
+    - "Islam"
