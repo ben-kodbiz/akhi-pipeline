@@ -1,0 +1,172 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4CAF50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#45a049;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2196F3;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1976D2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF9800;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#F57C00;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="grad4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9C27B0;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#7B1FA2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Title -->
+  <text x="600" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333">QLoRA Training Pipeline - Akhi CrewAI</text>
+  <text x="600" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Islamic AI Model Training from YouTube Content</text>
+  
+  <!-- Stage 1: Data Input -->
+  <g id="stage1">
+    <rect x="50" y="100" width="200" height="120" rx="10" fill="url(#grad1)" stroke="#333" stroke-width="2"/>
+    <text x="150" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">📹 DATA INPUT</text>
+    <text x="150" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">YouTube Videos</text>
+    <text x="150" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Islamic Lectures</text>
+    <text x="150" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Quran Recitations</text>
+    <text x="150" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Hadith Explanations</text>
+    <text x="150" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Scholar Discussions</text>
+  </g>
+  
+  <!-- Arrow 1 -->
+  <path d="M 250 160 L 290 160" stroke="#333" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 2: Data Processing -->
+  <g id="stage2">
+    <rect x="300" y="100" width="200" height="120" rx="10" fill="url(#grad2)" stroke="#333" stroke-width="2"/>
+    <text x="400" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">⚙️ PROCESSING</text>
+    <text x="400" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">CrewAI Agents</text>
+    <text x="400" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• YouTube Downloader</text>
+    <text x="400" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Transcriber Agent</text>
+    <text x="400" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Content QA Agent</text>
+    <text x="400" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Vector Indexer</text>
+  </g>
+  
+  <!-- Arrow 2 -->
+  <path d="M 500 160 L 540 160" stroke="#333" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 3: QLoRA Formatting -->
+  <g id="stage3">
+    <rect x="550" y="100" width="200" height="120" rx="10" fill="url(#grad3)" stroke="#333" stroke-width="2"/>
+    <text x="650" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">📝 FORMATTING</text>
+    <text x="650" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">QLoRA Formatter</text>
+    <text x="650" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Islamic Content Filter</text>
+    <text x="650" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Instruction Format</text>
+    <text x="650" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• JSON Dataset</text>
+    <text x="650" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Quality Validation</text>
+  </g>
+  
+  <!-- Arrow 3 -->
+  <path d="M 750 160 L 790 160" stroke="#333" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 4: Axolotl Training -->
+  <g id="stage4">
+    <rect x="800" y="100" width="200" height="120" rx="10" fill="url(#grad4)" stroke="#333" stroke-width="2"/>
+    <text x="900" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">🚀 TRAINING</text>
+    <text x="900" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Axolotl + QLoRA</text>
+    <text x="900" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• LoRA Adapters</text>
+    <text x="900" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• 4-bit Quantization</text>
+    <text x="900" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Memory Efficient</text>
+    <text x="900" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• GPU Optimized</text>
+  </g>
+  
+  <!-- Arrow down from training -->
+  <path d="M 900 220 L 900 260" stroke="#333" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 5: Model Validation -->
+  <g id="stage5">
+    <rect x="800" y="270" width="200" height="100" rx="10" fill="#E91E63" stroke="#333" stroke-width="2"/>
+    <text x="900" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">✅ VALIDATION</text>
+    <text x="900" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Model Validator</text>
+    <text x="900" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Islamic Keywords Test</text>
+    <text x="900" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Quality Metrics</text>
+    <text x="900" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Performance Eval</text>
+  </g>
+  
+  <!-- Arrow left from validation -->
+  <path d="M 800 320 L 760 320" stroke="#333" stroke-width="3" fill="none" marker-end="url(#arrowhead)"/>
+  
+  <!-- Stage 6: Model Deployment -->
+  <g id="stage6">
+    <rect x="550" y="270" width="200" height="100" rx="10" fill="#607D8B" stroke="#333" stroke-width="2"/>
+    <text x="650" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">🚀 DEPLOYMENT</text>
+    <text x="650" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="white">Model Deployer</text>
+    <text x="650" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Production Ready</text>
+    <text x="650" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• API Endpoints</text>
+    <text x="650" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">• Monitoring</text>
+  </g>
+  
+  <!-- Data Flow Indicators -->
+  <g id="dataflow">
+    <rect x="50" y="400" width="950" height="150" rx="10" fill="#f5f5f5" stroke="#ddd" stroke-width="2"/>
+    <text x="525" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#333">📊 Data Flow & Components</text>
+    
+    <!-- Input Data -->
+    <text x="70" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Input:</text>
+    <text x="70" y="465" font-family="Arial, sans-serif" font-size="11" fill="#666">• YouTube URLs</text>
+    <text x="70" y="480" font-family="Arial, sans-serif" font-size="11" fill="#666">• Islamic Content</text>
+    <text x="70" y="495" font-family="Arial, sans-serif" font-size="11" fill="#666">• Audio/Video Files</text>
+    
+    <!-- Processing Tools -->
+    <text x="250" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Tools:</text>
+    <text x="250" y="465" font-family="Arial, sans-serif" font-size="11" fill="#666">• youtube_downloader.py</text>
+    <text x="250" y="480" font-family="Arial, sans-serif" font-size="11" fill="#666">• transcriber.py</text>
+    <text x="250" y="495" font-family="Arial, sans-serif" font-size="11" fill="#666">• qlora_formatter.py</text>
+    <text x="250" y="510" font-family="Arial, sans-serif" font-size="11" fill="#666">• axolotl_trainer.py</text>
+    
+    <!-- Configuration -->
+    <text x="450" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Config:</text>
+    <text x="450" y="465" font-family="Arial, sans-serif" font-size="11" fill="#666">• qlora_config.yaml</text>
+    <text x="450" y="480" font-family="Arial, sans-serif" font-size="11" fill="#666">• crew_config.yaml</text>
+    <text x="450" y="495" font-family="Arial, sans-serif" font-size="11" fill="#666">• Axolotl configs</text>
+    
+    <!-- Output -->
+    <text x="650" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Output:</text>
+    <text x="650" y="465" font-family="Arial, sans-serif" font-size="11" fill="#666">• Fine-tuned Model</text>
+    <text x="650" y="480" font-family="Arial, sans-serif" font-size="11" fill="#666">• LoRA Adapters</text>
+    <text x="650" y="495" font-family="Arial, sans-serif" font-size="11" fill="#666">• Islamic AI Assistant</text>
+    
+    <!-- Monitoring -->
+    <text x="850" y="450" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Monitoring:</text>
+    <text x="850" y="465" font-family="Arial, sans-serif" font-size="11" fill="#666">• Training Logs</text>
+    <text x="850" y="480" font-family="Arial, sans-serif" font-size="11" fill="#666">• Performance Metrics</text>
+    <text x="850" y="495" font-family="Arial, sans-serif" font-size="11" fill="#666">• Quality Scores</text>
+  </g>
+  
+  <!-- Technical Details -->
+  <g id="technical">
+    <rect x="50" y="580" width="950" height="120" rx="10" fill="#e8f5e8" stroke="#4CAF50" stroke-width="2"/>
+    <text x="525" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#2E7D32">🔧 Technical Architecture</text>
+    
+    <text x="70" y="630" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2E7D32">QLoRA Features:</text>
+    <text x="70" y="645" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• 4-bit quantization for memory efficiency</text>
+    <text x="70" y="660" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• Low-Rank Adaptation (LoRA) for parameter efficiency</text>
+    <text x="70" y="675" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• Gradient checkpointing for large models</text>
+    
+    <text x="500" y="630" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2E7D32">Islamic Specialization:</text>
+    <text x="500" y="645" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• Quran verse understanding and context</text>
+    <text x="500" y="660" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• Hadith classification and authenticity</text>
+    <text x="500" y="675" font-family="Arial, sans-serif" font-size="11" fill="#388E3C">• Islamic jurisprudence (Fiqh) reasoning</text>
+  </g>
+  
+  <!-- Performance Metrics -->
+  <rect x="50" y="720" width="950" height="60" rx="10" fill="#fff3e0" stroke="#FF9800" stroke-width="2"/>
+  <text x="525" y="740" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#E65100">📈 Expected Performance</text>
+  <text x="150" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F57C00">Memory: 50-80% reduction</text>
+  <text x="350" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F57C00">Training Speed: 2-4x faster</text>
+  <text x="550" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F57C00">Model Quality: 95%+ accuracy</text>
+  <text x="750" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F57C00">Islamic Context: Expert-level</text>
+  <text x="900" y="760" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#F57C00">Deployment: Production-ready</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333" />
+    </marker>
+  </defs>
+</svg>
