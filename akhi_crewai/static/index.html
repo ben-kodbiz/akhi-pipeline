@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akhi CrewAI Pipeline - Web Interface</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .panel:hover {
+            transform: translateY(-5px);
+        }
+        
+        .panel h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            grid-column: 1 / -1;
+        }
+        
+        .results h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .result-item {
+            background: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .result-item h3 {
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+        
+        .result-item p {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .status.success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+        
+        .status.error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+        
+        .status.loading {
+            background: #bee3f8;
+            color: #2a4365;
+            border: 1px solid #90cdf4;
+        }
+        
+        .websocket-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        
+        .websocket-status.connected {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .websocket-status.disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="websocket-status" id="wsStatus">Disconnected</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🕌 Akhi CrewAI Pipeline</h1>
+            <p>Islamic Content Processing & Research Platform</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Search Panel -->
+            <div class="panel">
+                <h2>🔍 Video Search</h2>
+                <form id="searchForm">
+                    <div class="form-group">
+                        <label for="searchQuery">Search Query:</label>
+                        <input type="text" id="searchQuery" placeholder="Enter Islamic topic to search..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxResults">Max Results:</label>
+                        <select id="maxResults">
+                            <option value="5">5 videos</option>
+                            <option value="10" selected>10 videos</option>
+                            <option value="20">20 videos</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Search Videos</button>
+                </form>
+            </div>
+            
+            <!-- Process Panel -->
+            <div class="panel">
+                <h2>⚙️ Pipeline Processing</h2>
+                <form id="processForm">
+                    <div class="form-group">
+                        <label for="processQuery">Research Topic:</label>
+                        <input type="text" id="processQuery" placeholder="Enter topic for full processing..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="maxVideos">Max Videos:</label>
+                        <select id="maxVideos">
+                            <option value="3">3 videos</option>
+                            <option value="5" selected>5 videos</option>
+                            <option value="10">10 videos</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="fullProcess" checked>
+                            Full Processing (transcription + embedding)
+                        </label>
+                    </div>
+                    <button type="submit" class="btn">Start Processing</button>
+                </form>
+            </div>
+            
+            <!-- Query Panel -->
+            <div class="panel">
+                <h2>❓ Ask Questions</h2>
+                <form id="queryForm">
+                    <div class="form-group">
+                        <label for="question">Your Question:</label>
+                        <textarea id="question" rows="3" placeholder="Ask a question about the indexed content..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="indexName">Index:</label>
+                        <input type="text" id="indexName" value="default" placeholder="Index name">
+                    </div>
+                    <button type="submit" class="btn">Ask Question</button>
+                </form>
+            </div>
+            
+            <!-- Status Panel -->
+            <div class="panel">
+                <h2>📊 System Status</h2>
+                <button id="statusBtn" class="btn">Check Status</button>
+                <div id="statusDisplay" style="margin-top: 15px;"></div>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="results">
+                <h2>📋 Results</h2>
+                <div id="resultsContainer">
+                    <p style="color: #718096; text-align: center; padding: 40px;">Results will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // API Configuration
+        const API_BASE = window.location.origin;
+        const WS_URL = `ws://${window.location.host}/ws`;
+        
+        // WebSocket connection
+        let ws = null;
+        let wsReconnectInterval = null;
+        
+        // Initialize WebSocket
+        function initWebSocket() {
+            try {
+                ws = new WebSocket(WS_URL);
+                
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    updateWSStatus('connected');
+                    if (wsReconnectInterval) {
+                        clearInterval(wsReconnectInterval);
+                        wsReconnectInterval = null;
+                    }
+                };
+                
+                ws.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        handleWebSocketMessage(data);
+                    } catch (e) {
+                        console.error('Failed to parse WebSocket message:', e);
+                    }
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket disconnected');
+                    updateWSStatus('disconnected');
+                    
+                    // Attempt to reconnect
+                    if (!wsReconnectInterval) {
+                        wsReconnectInterval = setInterval(() => {
+                            console.log('Attempting to reconnect WebSocket...');
+                            initWebSocket();
+                        }, 5000);
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                    updateWSStatus('disconnected');
+                };
+                
+            } catch (e) {
+                console.error('Failed to initialize WebSocket:', e);
+                updateWSStatus('disconnected');
+            }
+        }
+        
+        function updateWSStatus(status) {
+            const statusEl = document.getElementById('wsStatus');
+            statusEl.textContent = status === 'connected' ? '🟢 Connected' : '🔴 Disconnected';
+            statusEl.className = `websocket-status ${status}`;
+        }
+        
+        function handleWebSocketMessage(data) {
+            console.log('WebSocket message:', data);
+            
+            if (data.type === 'pipeline_update') {
+                showStatus(`Pipeline ${data.status}: ${data.message}`, 
+                          data.status === 'error' ? 'error' : 'success');
+                
+                if (data.status === 'completed' && data.result) {
+                    displayResults(data.result, 'Pipeline Results');
+                }
+            }
+        }
+        
+        // Utility functions
+        function showStatus(message, type = 'loading') {
+            const container = document.getElementById('resultsContainer');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            container.insertBefore(statusDiv, container.firstChild);
+            
+            // Remove after 5 seconds for non-error messages
+            if (type !== 'error') {
+                setTimeout(() => {
+                    if (statusDiv.parentNode) {
+                        statusDiv.parentNode.removeChild(statusDiv);
+                    }
+                }, 5000);
+            }
+        }
+        
+        function displayResults(data, title) {
+            const container = document.getElementById('resultsContainer');
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result-item';
+            
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = title;
+            titleEl.style.marginBottom = '20px';
+            titleEl.style.color = '#2d3748';
+            titleEl.style.fontSize = '1.5rem';
+            titleEl.style.fontWeight = '600';
+            resultDiv.appendChild(titleEl);
+            
+            // Check if this is search results with video data
+            if (title === 'Search Results' && data.result) {
+                const contentEl = displayVideoResults(data.result);
+                resultDiv.appendChild(contentEl);
+            } else {
+                // For other types of results, display formatted JSON
+                const contentEl = document.createElement('div');
+                contentEl.style.background = '#f7fafc';
+                contentEl.style.padding = '20px';
+                contentEl.style.borderRadius = '8px';
+                contentEl.style.border = '1px solid #e2e8f0';
+                contentEl.innerHTML = formatJSONDisplay(data);
+                resultDiv.appendChild(contentEl);
+            }
+            
+            container.insertBefore(resultDiv, container.firstChild);
+        }
+        
+        function displayVideoResults(resultText) {
+            const container = document.createElement('div');
+            container.style.display = 'grid';
+            container.style.gap = '20px';
+            
+            // Parse the result text to extract video information
+            const videos = parseVideoResults(resultText);
+            
+            if (videos.length === 0) {
+                container.innerHTML = '<p style="color: #718096; text-align: center; padding: 20px;">No videos found.</p>';
+                return container;
+            }
+            
+            videos.forEach(video => {
+                const videoCard = createVideoCard(video);
+                container.appendChild(videoCard);
+            });
+            
+            return container;
+        }
+        
+        function parseVideoResults(resultText) {
+            const videos = [];
+            const videoBlocks = resultText.split(/\n\d+\. \*\*/).slice(1);
+            
+            videoBlocks.forEach(block => {
+                const lines = block.split('\n');
+                const video = {};
+                
+                // Extract title (first line)
+                video.title = lines[0].replace(/\*\*/g, '').trim();
+                
+                // Extract other fields
+                lines.forEach(line => {
+                    if (line.includes('Channel:')) {
+                        video.channel = line.replace('   Channel:', '').trim();
+                    } else if (line.includes('Duration:')) {
+                        video.duration = line.replace('   Duration:', '').trim();
+                    } else if (line.includes('URL:')) {
+                        video.url = line.replace('   URL:', '').trim();
+                    } else if (line.includes('Views:')) {
+                        video.views = line.replace('   Views:', '').trim();
+                    } else if (line.includes('Published:')) {
+                        video.published = line.replace('   Published:', '').trim();
+                    } else if (line.includes('Islamic Relevance Score:')) {
+                        video.score = line.replace('   Islamic Relevance Score:', '').trim();
+                    } else if (line.includes('Description:')) {
+                        video.description = line.replace('   Description:', '').trim();
+                    }
+                });
+                
+                if (video.title) {
+                    videos.push(video);
+                }
+            });
+            
+            return videos;
+        }
+        
+        function createVideoCard(video) {
+            const card = document.createElement('div');
+            card.style.cssText = `
+                background: white;
+                border-radius: 12px;
+                padding: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border: 1px solid #e2e8f0;
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+                cursor: pointer;
+            `;
+            
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-2px)';
+                card.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.15)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+                card.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+            });
+            
+            // Islamic relevance score badge
+            const scoreBadge = video.score ? `
+                <div style="
+                    display: inline-block;
+                    background: linear-gradient(135deg, #48bb78, #38a169);
+                    color: white;
+                    padding: 4px 12px;
+                    border-radius: 20px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    margin-bottom: 10px;
+                ">🕌 Islamic Score: ${video.score}</div>
+            ` : '';
+            
+            card.innerHTML = `
+                ${scoreBadge}
+                <h4 style="
+                    color: #2d3748;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    margin-bottom: 12px;
+                    line-height: 1.4;
+                ">${video.title || 'Untitled'}</h4>
+                
+                <div style="
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    margin-bottom: 12px;
+                    font-size: 14px;
+                    color: #4a5568;
+                ">                    
+                    <div><strong>📺 Channel:</strong> ${video.channel || 'Unknown'}</div>
+                    <div><strong>⏱️ Duration:</strong> ${video.duration || 'Unknown'}</div>
+                    <div><strong>👁️ Views:</strong> ${video.views || 'Unknown'}</div>
+                    <div><strong>📅 Published:</strong> ${video.published || 'Unknown'}</div>
+                </div>
+                
+                ${video.description ? `
+                    <p style="
+                        color: #718096;
+                        font-size: 14px;
+                        line-height: 1.5;
+                        margin-bottom: 15px;
+                        background: #f7fafc;
+                        padding: 10px;
+                        border-radius: 6px;
+                        border-left: 3px solid #667eea;
+                    ">${video.description}</p>
+                ` : ''}
+                
+                ${video.url ? `
+                    <a href="${video.url}" target="_blank" style="
+                        display: inline-block;
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        padding: 10px 20px;
+                        border-radius: 8px;
+                        text-decoration: none;
+                        font-weight: 600;
+                        font-size: 14px;
+                        transition: transform 0.2s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">🎥 Watch Video</a>
+                ` : ''}
+            `;
+            
+            return card;
+        }
+        
+        function formatJSONDisplay(data) {
+            if (typeof data === 'string') {
+                return `<pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; color: #4a5568;">${data}</pre>`;
+            }
+            
+            return `<pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; color: #4a5568;">${JSON.stringify(data, null, 2)}</pre>`;
+        }
+        
+        async function makeAPICall(endpoint, method = 'GET', data = null) {
+            try {
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                };
+                
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+                
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.detail || 'API call failed');
+                }
+                
+                return result;
+            } catch (error) {
+                console.error('API call failed:', error);
+                throw error;
+            }
+        }
+        
+        // Event handlers
+        document.getElementById('searchForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('searchQuery').value;
+            const maxResults = parseInt(document.getElementById('maxResults').value);
+            
+            showStatus('Searching for videos...', 'loading');
+            
+            try {
+                const result = await makeAPICall('/api/search', 'POST', {
+                    query,
+                    max_results: maxResults
+                });
+                
+                showStatus(result.message, result.status);
+                displayResults(result.data, 'Search Results');
+            } catch (error) {
+                showStatus(`Search failed: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('processForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = document.getElementById('processQuery').value;
+            const maxVideos = parseInt(document.getElementById('maxVideos').value);
+            const fullProcess = document.getElementById('fullProcess').checked;
+            
+            showStatus('Starting pipeline processing...', 'loading');
+            
+            try {
+                const result = await makeAPICall('/api/process', 'POST', {
+                    query,
+                    max_videos: maxVideos,
+                    full_process: fullProcess
+                });
+                
+                showStatus(result.message, result.status);
+                
+                if (!fullProcess) {
+                    displayResults(result.data, 'Process Results');
+                }
+            } catch (error) {
+                showStatus(`Processing failed: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('queryForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const question = document.getElementById('question').value;
+            const indexName = document.getElementById('indexName').value;
+            
+            showStatus('Processing your question...', 'loading');
+            
+            try {
+                const result = await makeAPICall('/api/query', 'POST', {
+                    question,
+                    index_name: indexName
+                });
+                
+                showStatus(result.message, result.status);
+                displayResults(result.data, 'Answer');
+            } catch (error) {
+                showStatus(`Query failed: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('statusBtn').addEventListener('click', async () => {
+            showStatus('Checking system status...', 'loading');
+            
+            try {
+                const result = await makeAPICall('/api/status');
+                
+                showStatus(result.message, result.status);
+                displayResults(result.data, 'System Status');
+                
+                // Update status display
+                const statusDisplay = document.getElementById('statusDisplay');
+                statusDisplay.innerHTML = `
+                    <div style="font-size: 14px; color: #4a5568;">
+                        <strong>Status:</strong> ${result.data.status || 'Unknown'}<br>
+                        <strong>Timestamp:</strong> ${new Date(result.timestamp).toLocaleString()}
+                    </div>
+                `;
+            } catch (error) {
+                showStatus(`Status check failed: ${error.message}`, 'error');
+            }
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebSocket();
+            
+            // Send periodic ping to keep WebSocket alive
+            setInterval(() => {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'ping' }));
+                }
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

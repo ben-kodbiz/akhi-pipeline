@@ -1,0 +1,28 @@
+{
+  "workflow_id": "checkpoint_test",
+  "timestamp": "2025-07-29T11:02:16.095659",
+  "status": "pending",
+  "completed_tasks": [
+    "task2",
+    "task1"
+  ],
+  "failed_tasks": [
+    "task3"
+  ],
+  "current_task": null,
+  "task_results": {},
+  "metadata": {
+    "task_attempts": {},
+    "metrics": {
+      "start_time": null,
+      "end_time": null,
+      "total_duration": null,
+      "task_count": 0,
+      "completed_tasks": 0,
+      "failed_tasks": 0,
+      "retried_tasks": 0,
+      "average_task_duration": null,
+      "resource_usage": {}
+    }
+  }
+}

@@ -1,0 +1,203 @@
+# Crew Orchestration Configuration
+# Phase 4: Advanced Workflow Management
+
+# Workflow Settings
+workflow:
+  # Default timeout for workflow execution (seconds)
+  default_timeout: 3600
+  
+  # Maximum concurrent tasks
+  max_concurrent_tasks: 3
+  
+  # Checkpoint settings
+  checkpoint:
+    enabled: true
+    interval: 300  # Save checkpoint every 5 minutes
+    max_checkpoints: 10  # Keep last 10 checkpoints
+    
+  # Progress monitoring
+  monitoring:
+    enabled: true
+    update_interval: 30  # Update progress every 30 seconds
+    detailed_logging: true
+
+# Retry Policies
+retry_policies:
+  # Default retry policy
+  default:
+    max_attempts: 3
+    initial_delay: 1.0
+    backoff_multiplier: 2.0
+    max_delay: 60.0
+    retry_on_errors:
+      - "timeout"
+      - "network"
+      - "temporary"
+      - "rate_limit"
+  
+  # Aggressive retry for critical tasks
+  aggressive:
+    max_attempts: 5
+    initial_delay: 0.5
+    backoff_multiplier: 1.5
+    max_delay: 30.0
+    retry_on_errors:
+      - "timeout"
+      - "network"
+      - "temporary"
+      - "rate_limit"
+      - "api_error"
+      - "processing_error"
+  
+  # Conservative retry for expensive operations
+  conservative:
+    max_attempts: 2
+    initial_delay: 5.0
+    backoff_multiplier: 3.0
+    max_delay: 120.0
+    retry_on_errors:
+      - "timeout"
+      - "network"
+  
+  # No retry for one-shot operations
+  no_retry:
+    max_attempts: 1
+    initial_delay: 0.0
+    retry_on_errors: []
+
+# Task-specific configurations
+task_configs:
+  video_search:
+    timeout: 300
+    retry_policy: "default"
+    parallel_execution: true
+    max_concurrent: 2
+    
+  transcription:
+    timeout: 1800  # 30 minutes for long videos
+    retry_policy: "conservative"
+    parallel_execution: false  # Resource intensive
+    
+  indexing:
+    timeout: 600
+    retry_policy: "aggressive"
+    parallel_execution: true
+    max_concurrent: 2
+    
+  qa:
+    timeout: 300
+    retry_policy: "default"
+    parallel_execution: true
+    max_concurrent: 3
+
+# Resource Management
+resource_management:
+  # Memory limits (MB)
+  memory_limits:
+    transcription: 2048
+    indexing: 1024
+    qa: 512
+    
+  # CPU limits (percentage)
+  cpu_limits:
+    transcription: 80
+    indexing: 60
+    qa: 40
+    
+  # Disk space monitoring
+  disk_monitoring:
+    enabled: true
+    min_free_space_gb: 5
+    cleanup_on_low_space: true
+
+# Error Handling
+error_handling:
+  # Continue workflow on non-critical errors
+  continue_on_error: true
+  
+  # Critical errors that should stop the workflow
+  critical_errors:
+    - "authentication_failed"
+    - "insufficient_permissions"
+    - "disk_full"
+    - "memory_exhausted"
+    
+  # Error notification settings
+  notifications:
+    enabled: false
+    email: null
+    webhook: null
+
+# Metrics and Logging
+metrics:
+  # Enable detailed metrics collection
+  enabled: true
+  
+  # Metrics export settings
+  export:
+    format: "json"  # json, csv, prometheus
+    interval: 60  # Export every minute
+    retention_days: 30
+    
+  # Performance thresholds
+  thresholds:
+    task_duration_warning: 300  # Warn if task takes > 5 minutes
+    memory_usage_warning: 80   # Warn if memory usage > 80%
+    error_rate_warning: 10     # Warn if error rate > 10%
+
+# Development and Testing
+development:
+  # Enable debug mode
+  debug_mode: false
+  
+  # Mock external services for testing
+  mock_services: false
+  
+  # Dry run mode (don't execute actual tasks)
+  dry_run: false
+  
+  # Verbose logging
+  verbose_logging: true
+
+# Integration Settings
+integration:
+  # External monitoring systems
+  monitoring_systems:
+    prometheus:
+      enabled: false
+      endpoint: null
+      
+    grafana:
+      enabled: false
+      dashboard_url: null
+      
+  # Message queues for distributed processing
+  message_queues:
+    redis:
+      enabled: false
+      host: "localhost"
+      port: 6379
+      
+    rabbitmq:
+      enabled: false
+      host: "localhost"
+      port: 5672
+
+# Security Settings
+security:
+  # Enable secure mode
+  secure_mode: true
+  
+  # API key validation
+  validate_api_keys: true
+  
+  # Rate limiting
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 60
+    
+  # Input sanitization
+  sanitize_inputs: true
+  
+  # Output filtering
+  filter_sensitive_data: true

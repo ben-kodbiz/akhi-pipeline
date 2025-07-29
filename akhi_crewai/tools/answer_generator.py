@@ -546,7 +546,7 @@ Answer:"""
                     metadata={},
                     message="No relevant context chunks found"
                 )
-                return json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+                return result
             
             # Generate answer
             answer = self._generate_answer_with_llm(
@@ -584,7 +584,7 @@ Answer:"""
                     },
                     message=f"Answer confidence ({confidence_score:.2f}) below threshold ({input_data.confidence_threshold})"
                 )
-                return json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+                return result
             
             # Successful answer generation
             result = AnswerGenerationOutput(
@@ -607,7 +607,7 @@ Answer:"""
                 message="Answer generated successfully"
             )
             
-            return json.dumps(result.model_dump(), indent=2, ensure_ascii=False)
+            return result
             
         except Exception as e:
             error_result = AnswerGenerationOutput(
@@ -624,7 +624,7 @@ Answer:"""
                 message=f"Error in answer generation: {str(e)}"
             )
             
-            return json.dumps(error_result.model_dump(), indent=2, ensure_ascii=False)
+            return error_result
 
 
 if __name__ == "__main__":

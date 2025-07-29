@@ -9,7 +9,7 @@ from .youtube_downloader import YouTubeDownloaderTool, YouTubeDownloadInput
 from .transcriber import TranscriptionTool, TranscriptionInput
 from .chunker import TextChunkerTool, ChunkingInput
 from .embedder import EmbedderTool, EmbeddingInput
-from .faiss_store import FAISSStorageTool, FAISSStorageInput
+from .faiss_store import FAISSStorageTool, FAISSStoreInput
 from .faiss_query import FAISSQueryTool, FAISSQueryInput
 from .summarizer import SummarizerTool, SummarizationInput
 from .answer_generator import AnswerGeneratorTool, AnswerGenerationInput
@@ -26,7 +26,7 @@ __all__ = [
     'EmbedderTool',
     'EmbeddingInput',
     'FAISSStorageTool',
-    'FAISSStorageInput',
+    'FAISSStoreInput',
     'FAISSQueryTool',
     'FAISSQueryInput',
     'SummarizerTool',

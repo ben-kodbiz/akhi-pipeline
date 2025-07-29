@@ -123,21 +123,21 @@ class SummarizerTool(BaseTool):
         "Generates summaries from text content using local LLM models. "
         "Supports multiple summarization strategies and is optimized for Islamic content."
     )
-    args_schema = SummarizationInput
+    args_schema: type = SummarizationInput
     
     def __init__(self, config_path: Optional[str] = None):
         """Initialize the summarization tool."""
         super().__init__()
         
         # Load configuration
-        self.config = self._load_config(config_path)
+        self._config = self._load_config(config_path)
         
         # Initialize model variables
         self._llm_model = None
         self._current_model_path = None
         
         # Islamic terms to preserve
-        self.islamic_terms = {
+        self._islamic_terms = {
             'Allah', 'Quran', 'Qur\'an', 'Hadith', 'Sunnah', 'Prophet', 'Muhammad',
             'Islam', 'Muslim', 'Salah', 'Zakat', 'Hajj', 'Ramadan', 'Ummah',
             'Jihad', 'Sharia', 'Imam', 'Masjid', 'Dua', 'Dhikr', 'Tawhid',
@@ -208,7 +208,7 @@ class SummarizerTool(BaseTool):
                 print(f"Loading LLM model: {target_path}")
                 self._llm_model = Llama(
                     model_path=target_path,
-                    n_ctx=self.config['model']['context_length'],
+                    n_ctx=self._config['model']['context_length'],
                     verbose=False
                 )
                 self._current_model_path = target_path
@@ -231,7 +231,7 @@ class SummarizerTool(BaseTool):
             score = len(sentence.split())  # Base score on word count
             
             # Boost score for Islamic terms
-            for term in self.islamic_terms:
+            for term in self._islamic_terms:
                 if term.lower() in sentence.lower():
                     score += 10
             
@@ -252,7 +252,7 @@ class SummarizerTool(BaseTool):
         found_terms = []
         text_lower = text.lower()
         
-        for term in self.islamic_terms:
+        for term in self._islamic_terms:
             if term.lower() in text_lower:
                 found_terms.append(term)
         
@@ -280,7 +280,7 @@ class SummarizerTool(BaseTool):
                 score += 5
             
             # Islamic terms score
-            for term in self.islamic_terms:
+            for term in self._islamic_terms:
                 if term.lower() in sentence.lower():
                     score += 8
             
@@ -335,10 +335,10 @@ Summary:"""
         try:
             response = llm(
                 prompt,
-                max_tokens=self.config['model']['max_tokens'],
-                temperature=self.config['model']['temperature'],
-                top_p=self.config['model']['top_p'],
-                top_k=self.config['model']['top_k'],
+                max_tokens=self._config['model']['max_tokens'],
+                temperature=self._config['model']['temperature'],
+                top_p=self._config['model']['top_p'],
+                top_k=self._config['model']['top_k'],
                 stop=["\n\n", "Text to summarize:", "Requirements:"]
             )
             
@@ -412,9 +412,9 @@ Summary:"""
                 target_words = input_data.max_words
             else:
                 length_mapping = {
-                    'short': self.config['summarization']['short_words'],
-                    'medium': self.config['summarization']['medium_words'],
-                    'long': self.config['summarization']['long_words']
+                    'short': self._config['summarization']['short_words'],
+                    'medium': self._config['summarization']['medium_words'],
+                    'long': self._config['summarization']['long_words']
                 }
                 target_words = length_mapping[input_data.summary_length]
             
