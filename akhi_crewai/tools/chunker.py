@@ -17,7 +17,7 @@ import yaml
 from typing import List, Dict, Any, Optional, Union
 from pathlib import Path
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from crewai.tools import BaseTool
 
 
@@ -69,14 +69,16 @@ class ChunkingInput(BaseModel):
         description="Whether to include chunk metadata"
     )
     
-    @validator('strategy')
+    @field_validator('strategy')
+    @classmethod
     def validate_strategy(cls, v):
-        allowed_strategies = ['sliding_window', 'semantic', 'sentence', 'paragraph']
+        allowed_strategies = ['sliding_window', 'sentence_boundary', 'paragraph_boundary', 'semantic_boundary']
         if v not in allowed_strategies:
             raise ValueError(f"Strategy must be one of: {allowed_strategies}")
         return v
     
-    @validator('output_format')
+    @field_validator('output_format')
+    @classmethod
     def validate_output_format(cls, v):
         allowed_formats = ['list', 'json']
         if v not in allowed_formats:

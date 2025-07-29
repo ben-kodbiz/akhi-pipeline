@@ -28,7 +28,7 @@ from datetime import datetime
 
 # CrewAI imports
 from crewai.tools import BaseTool
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 # LLM imports
 try:
@@ -91,21 +91,24 @@ class AnswerGenerationInput(BaseModel):
         description="Answer style: 'brief', 'comprehensive', 'detailed'"
     )
     
-    @validator('citation_style')
+    @field_validator('citation_style')
+    @classmethod
     def validate_citation_style(cls, v):
         allowed = ['numbered', 'inline', 'footnote']
         if v not in allowed:
             raise ValueError(f"citation_style must be one of {allowed}")
         return v
     
-    @validator('language')
+    @field_validator('language')
+    @classmethod
     def validate_language(cls, v):
         allowed = ['en', 'ar', 'auto']
         if v not in allowed:
             raise ValueError(f"language must be one of {allowed}")
         return v
     
-    @validator('answer_style')
+    @field_validator('answer_style')
+    @classmethod
     def validate_answer_style(cls, v):
         allowed = ['brief', 'comprehensive', 'detailed']
         if v not in allowed:

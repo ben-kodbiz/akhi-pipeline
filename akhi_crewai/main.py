@@ -302,62 +302,164 @@ class AkhiPipelineApp:
     
     def get_system_status(self) -> Dict[str, Any]:
         """
-        Check system status and health.
+        Get comprehensive system status.
         
         Returns:
             dict: System status information
         """
         try:
+            if not self.crew:
+                self.crew = self._initialize_crew()
+            
             status = {
-                'status': 'healthy',
                 'timestamp': datetime.now().isoformat(),
-                'components': {
-                    'llm_config': 'unknown',
-                    'tools': 'unknown',
-                    'crew': 'unknown'
+                'system': {
+                    'python_version': sys.version,
+                    'working_directory': str(Path.cwd()),
+                    'config_path': self.config_path
                 },
-                'statistics': {
-                    'tools_loaded': len(self.tools),
-                    'session_history_count': len(self.session_history)
+                'tools': {
+                    'initialized': len(self.tools),
+                    'available': list(self.tools.keys())
                 }
             }
             
-            # Check LLM configuration
+            # Check tool health
+            tool_status = {}
+            for name, tool in self.tools.items():
+                try:
+                    # Basic health check
+                    tool_status[name] = {
+                        'status': 'healthy',
+                        'type': type(tool).__name__
+                    }
+                except Exception as e:
+                    tool_status[name] = {
+                        'status': 'error',
+                        'error': str(e)
+                    }
+            
+            status['tools']['health'] = tool_status
+            
+            # Check crew status
             try:
-                if self.llm_config.validate_llm_connection():
-                    status['components']['llm_config'] = 'healthy'
-                else:
-                    status['components']['llm_config'] = 'warning'
-            except Exception:
-                status['components']['llm_config'] = 'error'
+                crew_status = self.crew.get_status() if hasattr(self.crew, 'get_status') else {'status': 'initialized'}
+                status['crew'] = crew_status
+            except Exception as e:
+                status['crew'] = {
+                    'status': 'error',
+                    'error': str(e)
+                }
             
-            # Check tools
-            if self.tools:
-                status['components']['tools'] = 'healthy'
-            else:
-                status['components']['tools'] = 'error'
-            
-            # Check crew
+            # Check QLoRA status
             try:
-                if self.crew or self._initialize_crew():
-                    status['components']['crew'] = 'healthy'
-            except Exception:
-                status['components']['crew'] = 'error'
+                qlora_status = self.crew.get_qlora_status() if hasattr(self.crew, 'get_qlora_status') else {'status': 'not_available'}
+                status['qlora'] = qlora_status
+            except Exception as e:
+                status['qlora'] = {
+                    'status': 'error',
+                    'error': str(e)
+                }
             
-            # Determine overall status
-            component_statuses = list(status['components'].values())
-            if 'error' in component_statuses:
-                status['status'] = 'degraded'
-            elif 'warning' in component_statuses:
-                status['status'] = 'warning'
+            # Session information
+            status['session'] = {
+                'current_id': self.current_session_id,
+                'history_count': len(self.session_history)
+            }
             
-            return status
+            return {
+                'status': 'success',
+                'data': status
+            }
             
         except Exception as e:
+            self.logger.error(f"Failed to get system status: {e}")
             return {
                 'status': 'error',
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                'error': str(e)
+            }
+    
+    def train_qlora_model(self, training_data_path: str, model_name: str = "akhi-islamic-assistant", training_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Train a QLoRA model using provided training data.
+        
+        Args:
+            training_data_path: Path to training data JSON file
+            model_name: Name for the trained model
+            training_config: Optional training configuration override
+            
+        Returns:
+            dict: Training results
+        """
+        try:
+            if not self.crew:
+                self.crew = self._initialize_crew()
+            
+            self.logger.info(f"Starting QLoRA training: {model_name}")
+            
+            result = self.crew.execute_qlora_training(
+                training_data_path=training_data_path,
+                model_name=model_name,
+                training_config=training_config
+            )
+            
+            return {
+                'status': 'success',
+                'data': result
+            }
+            
+        except Exception as e:
+            self.logger.error(f"QLoRA training failed: {e}")
+            return {
+                'status': 'error',
+                'error': str(e)
+            }
+    
+    def process_pipeline_with_training(self, query: str, enable_training: bool = True, max_videos: int = 5, training_config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Execute full pipeline including QLoRA training.
+        
+        Args:
+            query: Search query for videos
+            enable_training: Whether to perform QLoRA training
+            max_videos: Maximum number of videos to process
+            training_config: Optional training configuration
+            
+        Returns:
+            dict: Complete pipeline results including training
+        """
+        try:
+            if not self.crew:
+                self.crew = self._initialize_crew()
+            
+            self.logger.info(f"Starting full pipeline with training: {query}")
+            
+            # Generate questions for the topic
+            questions = [
+                f"What are the key principles of {query}?",
+                f"How does {query} relate to Islamic teachings?",
+                f"What are common misconceptions about {query}?",
+                f"How can Muslims apply {query} in daily life?"
+            ]
+            
+            result = self.crew.execute_full_pipeline_with_training(
+                search_query=query,
+                questions=questions,
+                enable_training=enable_training,
+                max_videos=max_videos,
+                training_config=training_config
+            )
+            
+            return {
+                'status': 'success',
+                'data': result
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Full pipeline with training failed: {e}")
+            return {
+                'status': 'error',
+                'error': str(e)
             }
     
     def interactive_mode(self):
@@ -372,6 +474,8 @@ class AkhiPipelineApp:
         print("  /query <question>   - Ask about indexed content")
         print("  /summarize          - Generate content summary")
         print("  /status             - Check system status")
+        print("  /train <data> [name] - Train QLoRA model")
+        print("  /process-train <query> - Full pipeline + training")
         print("  /history            - Show session history")
         print("  /help               - Show this help")
         print("  /quit               - Exit interactive mode")
@@ -404,6 +508,8 @@ class AkhiPipelineApp:
                     print("  /query <question>   - Ask questions about indexed content")
                     print("  /summarize          - Generate summary of recent content")
                     print("  /status             - Check system health and status")
+                    print("  /train <data> [name] - Train QLoRA model with training data")
+                    print("  /process-train <query> - Full pipeline including QLoRA training")
                     print("  /history            - Show current session history")
                     print("  /quit               - Exit interactive mode")
                 
@@ -466,15 +572,70 @@ class AkhiPipelineApp:
                 elif user_input.startswith('/status'):
                     print("\n🔍 Checking system status...")
                     status = self.get_system_status()
-                    print(f"\n📊 System Status: {status.get('status', 'unknown').upper()}")
-                    components = status.get('components', {})
-                    for component, state in components.items():
-                        emoji = {'healthy': '✅', 'warning': '⚠️', 'error': '❌', 'unknown': '❓'}.get(state, '❓')
-                        print(f"  {emoji} {component}: {state}")
-                    stats = status.get('statistics', {})
-                    print(f"\n📈 Statistics:")
-                    print(f"  Tools loaded: {stats.get('tools_loaded', 0)}")
-                    print(f"  Session commands: {stats.get('session_history_count', 0)}")
+                    if status.get('status') == 'success':
+                        data = status.get('data', {})
+                        print(f"\n📊 System Status: HEALTHY")
+                        
+                        # Tools status
+                        tools = data.get('tools', {})
+                        print(f"\n🔧 Tools ({tools.get('initialized', 0)} loaded):")
+                        tool_health = tools.get('health', {})
+                        for tool_name, tool_info in tool_health.items():
+                            emoji = '✅' if tool_info.get('status') == 'healthy' else '❌'
+                            print(f"  {emoji} {tool_name}: {tool_info.get('status')}")
+                        
+                        # Crew status
+                        crew = data.get('crew', {})
+                        crew_emoji = '✅' if crew.get('status') != 'error' else '❌'
+                        print(f"\n🤖 Crew: {crew_emoji} {crew.get('status', 'unknown')}")
+                        
+                        # QLoRA status
+                        qlora = data.get('qlora', {})
+                        qlora_emoji = '✅' if qlora.get('status') == 'available' else '⚠️' if qlora.get('status') == 'not_available' else '❌'
+                        print(f"🧠 QLoRA: {qlora_emoji} {qlora.get('status', 'unknown')}")
+                        
+                        # Session info
+                        session = data.get('session', {})
+                        print(f"\n📈 Session:")
+                        print(f"  Commands: {session.get('history_count', 0)}")
+                        print(f"  Session ID: {session.get('current_id', 'none')}")
+                    else:
+                        print(f"\n❌ Status check failed: {status.get('error')}")
+                
+                elif user_input.startswith('/train '):
+                    parts = user_input[7:].strip().split(' ', 1)
+                    if len(parts) >= 1:
+                        training_data_path = parts[0]
+                        model_name = parts[1] if len(parts) > 1 else "akhi-islamic-assistant"
+                        print(f"\n🧠 Training QLoRA model: {model_name}")
+                        print(f"📁 Training data: {training_data_path}")
+                        print("This may take a long time...")
+                        result = self.train_qlora_model(training_data_path, model_name)
+                        if result.get('status') == 'success':
+                            print("✅ QLoRA training completed successfully")
+                            data = result.get('data', {})
+                            if 'model_path' in data:
+                                print(f"💾 Model saved to: {data['model_path']}")
+                        else:
+                            print(f"❌ Training failed: {result.get('error')}")
+                    else:
+                        print("❌ Please provide training data path: /train <data_path> [model_name]")
+                
+                elif user_input.startswith('/process-train '):
+                    query = user_input[15:].strip()
+                    if query:
+                        print(f"\n⚙️🧠 Processing pipeline with training: {query}")
+                        print("This will take a very long time...")
+                        result = self.process_pipeline_with_training(query)
+                        if result.get('status') == 'success':
+                            print("✅ Full pipeline with training completed")
+                            data = result.get('data', {})
+                            if 'training_result' in data:
+                                print(f"🧠 Training result: {data['training_result'].get('status', 'unknown')}")
+                        else:
+                            print(f"❌ Pipeline failed: {result.get('error')}")
+                    else:
+                        print("❌ Please provide a research query")
                 
                 elif user_input.startswith('/history'):
                     print(f"\n📜 Session History (Session: {self.current_session_id}):")
@@ -534,6 +695,10 @@ For interactive mode with real-time Q&A:
                        help='Generate summaries of recent content')
     parser.add_argument('--status', action='store_true',
                        help='Check system status and health')
+    parser.add_argument('--train', type=str, metavar='DATA_PATH',
+                       help='Train QLoRA model with training data')
+    parser.add_argument('--process-train', type=str, metavar='QUERY',
+                       help='Execute full pipeline including QLoRA training')
     parser.add_argument('--interactive', action='store_true',
                        help='Start interactive chat interface')
     
@@ -544,6 +709,10 @@ For interactive mode with real-time Q&A:
                        help='Maximum number of videos to process (default: 5)')
     parser.add_argument('--index-name', type=str, default='default', metavar='NAME',
                        help='FAISS index name for queries (default: default)')
+    parser.add_argument('--model-name', type=str, default='akhi-islamic-assistant', metavar='NAME',
+                       help='Name for trained QLoRA model (default: akhi-islamic-assistant)')
+    parser.add_argument('--enable-training', action='store_true',
+                       help='Enable QLoRA training in pipeline')
     
     # Output options
     parser.add_argument('--output', type=str, metavar='FILE',
@@ -584,6 +753,21 @@ For interactive mode with real-time Q&A:
         elif args.status:
             print("🔍 Checking system status...")
             result = app.get_system_status()
+            
+        elif args.train:
+            print(f"🧠 Training QLoRA model: {args.model_name}")
+            print(f"📁 Training data: {args.train}")
+            print("This may take a long time...")
+            result = app.train_qlora_model(args.train, args.model_name)
+            
+        elif args.process_train:
+            print(f"⚙️🧠 Processing pipeline with training: {args.process_train}")
+            print("This will take a very long time...")
+            result = app.process_pipeline_with_training(
+                args.process_train, 
+                enable_training=True,
+                max_videos=args.max_videos
+            )
             
         elif args.interactive:
             app.interactive_mode()

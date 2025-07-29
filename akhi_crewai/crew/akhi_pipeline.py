@@ -36,6 +36,14 @@ from agents import (
     create_content_qa_agent
 )
 
+# Phase 8: QLoRA Training Integration
+try:
+    from agents.qlora_trainer import QLoRATrainerAgent
+    QLORA_AVAILABLE = True
+except ImportError:
+    QLORA_AVAILABLE = False
+    print("⚠️ QLoRA training components not available")
+
 
 class AkhiPipelineCrew:
     """
@@ -68,6 +76,15 @@ class AkhiPipelineCrew:
         # Create output directories
         self.output_dir = Path(self.config.get('output_dir', 'data/crew_outputs'))
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Phase 8: Initialize QLoRA trainer if available
+        self.qlora_trainer = None
+        if QLORA_AVAILABLE and self.config.get('qlora_training', {}).get('enabled', False):
+            try:
+                self.qlora_trainer = QLoRATrainerAgent(config=self.config)
+                self.logger.info("QLoRA trainer initialized successfully")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize QLoRA trainer: {e}")
         
         self.logger.info("AkhiPipelineCrew initialized successfully")
     
@@ -431,6 +448,169 @@ class AkhiPipelineCrew:
                 'questions': questions,
                 'index_name': index_name
             }
+    
+    def execute_qlora_training(
+        self,
+        training_data_path: str,
+        model_name: str = "akhi-islamic-assistant",
+        training_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute QLoRA fine-tuning workflow.
+        
+        Args:
+            training_data_path: Path to training data
+            model_name: Name for the trained model
+            training_config: Optional training configuration override
+            
+        Returns:
+            Training results and model information
+        """
+        if not QLORA_AVAILABLE or self.qlora_trainer is None:
+            return {
+                'status': 'failed',
+                'timestamp': datetime.now().isoformat(),
+                'error': 'QLoRA training not available or not initialized',
+                'training_data_path': training_data_path
+            }
+        
+        try:
+            self.logger.info(f"Starting QLoRA training for model: {model_name}")
+            
+            # Prepare training configuration
+            config = training_config or {}
+            config.update({
+                'training_data_path': training_data_path,
+                'model_name': model_name,
+                'output_dir': str(self.output_dir / 'qlora_models')
+            })
+            
+            # Execute training
+            training_results = self.qlora_trainer.train_model(config)
+            
+            # Validate trained model
+            if training_results.get('status') == 'completed':
+                validation_results = self.qlora_trainer.validate_model(
+                    training_results.get('model_path')
+                )
+                training_results['validation'] = validation_results
+            
+            self.logger.info("QLoRA training completed successfully")
+            return training_results
+            
+        except Exception as e:
+            self.logger.error(f"QLoRA training failed: {str(e)}")
+            return {
+                'status': 'failed',
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e),
+                'training_data_path': training_data_path,
+                'model_name': model_name
+            }
+    
+    def execute_full_pipeline_with_training(
+        self,
+        search_query: str,
+        questions: List[str],
+        enable_training: bool = True,
+        max_videos: int = 5,
+        training_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Execute complete pipeline including QLoRA training.
+        
+        Args:
+            search_query: Search query for videos
+            questions: Questions to answer
+            enable_training: Whether to perform QLoRA training
+            max_videos: Maximum number of videos to process
+            training_config: Optional training configuration
+            
+        Returns:
+            Complete pipeline results including training
+        """
+        try:
+            self.logger.info("Starting full pipeline with QLoRA training")
+            
+            # Step 1: Execute standard pipeline
+            pipeline_results = self.execute_pipeline(
+                search_query=search_query,
+                questions=questions,
+                max_videos=max_videos
+            )
+            
+            if pipeline_results.get('status') != 'completed':
+                return pipeline_results
+            
+            # Step 2: Prepare training data from transcripts
+            if enable_training and QLORA_AVAILABLE and self.qlora_trainer:
+                try:
+                    # Format transcripts for QLoRA training
+                    training_data_path = self.qlora_trainer.prepare_training_data(
+                        transcript_dir=str(self.output_dir / 'transcripts'),
+                        output_path=str(self.output_dir / 'qlora_training_data.json')
+                    )
+                    
+                    # Execute QLoRA training
+                    training_results = self.execute_qlora_training(
+                        training_data_path=training_data_path,
+                        model_name=f"akhi-{search_query.replace(' ', '-').lower()}",
+                        training_config=training_config
+                    )
+                    
+                    # Add training results to pipeline results
+                    pipeline_results['qlora_training'] = training_results
+                    
+                    # Deploy trained model if successful
+                    if training_results.get('status') == 'completed':
+                        deployment_results = self.qlora_trainer.deploy_model(
+                            model_path=training_results.get('model_path'),
+                            deployment_target='local'
+                        )
+                        pipeline_results['model_deployment'] = deployment_results
+                    
+                except Exception as e:
+                    self.logger.warning(f"QLoRA training failed, continuing with standard pipeline: {e}")
+                    pipeline_results['qlora_training'] = {
+                        'status': 'failed',
+                        'error': str(e)
+                    }
+            
+            pipeline_results['pipeline_type'] = 'full_with_training'
+            self.logger.info("Full pipeline with training completed")
+            return pipeline_results
+            
+        except Exception as e:
+            self.logger.error(f"Full pipeline with training failed: {str(e)}")
+            return {
+                'status': 'failed',
+                'timestamp': datetime.now().isoformat(),
+                'error': str(e),
+                'search_query': search_query,
+                'questions': questions
+            }
+    
+    def get_qlora_status(self) -> Dict[str, Any]:
+        """
+        Get QLoRA training system status.
+        
+        Returns:
+            QLoRA system status information
+        """
+        status = {
+            'qlora_available': QLORA_AVAILABLE,
+            'trainer_initialized': self.qlora_trainer is not None,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        if self.qlora_trainer:
+            try:
+                trainer_status = self.qlora_trainer.get_status()
+                status.update(trainer_status)
+            except Exception as e:
+                status['trainer_error'] = str(e)
+        
+        return status
 
 
 if __name__ == "__main__":

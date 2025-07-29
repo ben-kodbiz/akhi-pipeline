@@ -1,52 +1,130 @@
-# CrewAI Agentic System Dependencies
+# Akhi CrewAI Pipeline - QLoRA Integration Requirements
+# Core dependencies for YouTube processing, transcription, and QLoRA training
 
 # Core CrewAI Framework
 crewai>=0.28.0
 crewai-tools>=0.1.0
 
-# YouTube Processing (existing)
+# YouTube Processing
 yt-dlp>=2023.12.30
 yt-search>=2.1.2
 
-# Audio/Video Processing (existing)
+# Audio/Video Processing & Transcription
 openai-whisper>=20231117
 ffmpeg-python>=0.2.0
+librosa>=0.10.1
+soundfile>=0.12.1
+audioread>=3.0.0
+
+# Core ML/AI Libraries for QLoRA
+torch>=2.1.0
+transformers>=4.36.0
+accelerate>=0.24.0
+bitsandbytes>=0.41.0
+peft>=0.6.0
+datasets>=2.14.0
+tokenizers>=0.15.0
 
 # Vector Search and Embeddings
 faiss-cpu>=1.7.4
 sentence-transformers>=2.2.2
+chromadb>=0.4.15
 numpy>=1.24.0
 scipy>=1.11.0
+scikit-learn>=1.3.0
 
 # Local LLM Support
 llama-cpp-python>=0.2.20
-transformers>=4.36.0
-torch>=2.1.0
 
-# Text Processing
+# Text Processing & NLP
 tiktoken>=0.5.2
 langchain>=0.1.0
 langchain-community>=0.0.10
+langchain-openai>=0.0.5
+nltk>=3.8.1
+spacy>=3.7.0
+textstat>=0.7.3
+langdetect>=1.0.9
+
+# Islamic Content Processing
+arabic-reshaper>=3.0.0
+python-bidi>=0.4.2
+pyarabic>=0.6.15
 
 # Data Processing
 pandas>=2.1.0
 pyyaml>=6.0.1
 jsonlines>=4.0.0
+pyarrow>=14.0.0
+toml>=0.10.2
 
-# Web Framework (for API)
+# Database Support
+sqlalchemy>=2.0.0
+alembic>=1.12.0
+
+# Web Framework & Monitoring
 fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
+streamlit>=1.28.0
+gradio>=4.0.0
 websockets>=12.0
 pydantic>=2.5.0
 python-multipart>=0.0.6
 
-# Utilities
-requests>=2.31.0
-httpx>=0.23.0,<0.24.0  # Compatible with youtubesearchpython
+# CLI & UI Enhancement
+rich>=13.7.0
+click>=8.1.7
 tqdm>=4.66.0
 colorama>=0.4.6
-rich>=13.7.0
+tabulate>=0.9.0
+
+# System Monitoring
+psutil>=5.9.6
+gpustat>=1.1.1
+
+# HTTP & API
+requests>=2.31.0
+httpx>=0.23.0,<0.24.0  # Compatible with youtubesearchpython
+aiohttp>=3.9.0
+beautifulsoup4>=4.12.0
+
+# Configuration & Environment
 python-dotenv>=1.0.0
+configparser>=6.0.0
+hydra-core>=1.3.0
+omegaconf>=2.3.0
+
+# Logging & Monitoring
+loguru>=0.7.2
+wandb>=0.16.0
+tensorboard>=2.15.0
+mlflow>=2.8.0
+
+# Async & Concurrency
+aiofiles>=23.2.1
+pathos>=0.3.1
+joblib>=1.3.0
+
+# Date & Time
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Security
+cryptography>=41.0.7
+keyring>=24.3.0
+
+# Development & Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+black>=23.11.0
+flake8>=6.1.0
+isort>=5.12.0
+mypy>=1.7.0
+ipython>=8.17.0
+jupyter>=1.0.0
+notebook>=7.0.0
+ipywidgets>=8.1.0
 
 # Development and Testing
 pytest>=7.4.0

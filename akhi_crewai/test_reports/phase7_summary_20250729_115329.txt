@@ -1,0 +1,46 @@
+AKHI CREWAI PIPELINE - PHASE 7 TEST REPORT
+==================================================
+
+Generated: 2025-07-29T11:53:16.795034
+Phase: 7 - Testing & Validation
+
+SUMMARY
+--------------------
+Total Test Suites: 10
+Passed: 0
+Failed: 10
+Errors: 0
+Pass Rate: 0.0%
+Duration: 5.09s
+System Status: HEALTHY
+
+RECOMMENDATIONS
+--------------------
+❌ Address failing test suites before proceeding to production
+📈 Improve test pass rate to at least 80% before deployment
+🚧 System requires additional development before deployment
+🔨 Fix failing unit tests for individual tools
+🔗 Address integration test failures for end-to-end workflows
+📚 Improve Islamic content accuracy and answer quality
+⚡ Optimize system performance and resource usage
+
+DETAILED RESULTS
+--------------------
+
+UNIT TESTS:
+  Unit Tests - Youtube_Downloader: FAILED (0.51s)
+  Unit Tests - Embedder: FAILED (0.50s)
+  Unit Tests - Faiss_Query: FAILED (0.51s)
+  Unit Tests - Faiss_Store: FAILED (0.50s)
+  Unit Tests - Transcriber: FAILED (0.50s)
+  Unit Tests - Answer_Generator: FAILED (0.52s)
+  Unit Tests - Chunker: FAILED (0.50s)
+
+INTEGRATION TESTS:
+  Integration Tests: FAILED (0.51s)
+
+QUALITY ASSURANCE:
+  Quality Assurance Tests: FAILED (0.53s)
+
+PERFORMANCE TESTS:
+  Performance Benchmarking: FAILED (0.50s)

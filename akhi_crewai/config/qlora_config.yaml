@@ -1,0 +1,316 @@
+# QLoRA Training Configuration for Akhi Islamic Assistant
+# Phase 8 - QLoRA Fine-Tuning Integration
+# Compatible with Axolotl training framework
+
+# Base model configuration
+base_model: microsoft/DialoGPT-medium
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+
+# Trust remote code (if needed)
+trust_remote_code: false
+
+# LoRA Configuration
+adapter: qlora
+lora_model_dir: # Will be set during training
+
+# LoRA hyperparameters
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.1
+lora_target_modules:
+  - q_proj
+  - v_proj
+  - k_proj
+  - o_proj
+  - gate_proj
+  - down_proj
+  - up_proj
+
+# QLoRA specific settings
+load_in_4bit: true
+load_in_8bit: false
+bnb_4bit_compute_dtype: bfloat16
+bnb_4bit_use_double_quant: true
+bnb_4bit_quant_type: nf4
+
+# Training data
+datasets:
+  - path: data/qlora_training_data.json
+    type: completion
+    field: text
+
+# Data processing
+dataset_prepared_path: data/prepared
+val_set_size: 0.1
+output_dir: ./models/akhi_qlora
+
+# Sequence length
+sequence_len: 512
+max_packed_sequence_len: 512
+
+# Training hyperparameters
+micro_batch_size: 1
+gradient_accumulation_steps: 4
+num_epochs: 3
+optimizer: adamw_bnb_8bit
+lr_scheduler: cosine
+learning_rate: 0.0002
+
+# Training optimizations
+train_on_inputs: false
+group_by_length: false
+bf16: true
+fp16: false
+tf32: false
+
+# Gradient settings
+gradient_checkpointing: true
+max_grad_norm: 1.0
+
+# Logging and evaluation
+logging_steps: 10
+eval_steps: 50
+save_steps: 100
+eval_table_size: 5
+eval_table_max_new_tokens: 128
+
+# Early stopping
+early_stopping_patience: 3
+
+# Model saving
+save_strategy: steps
+save_total_limit: 3
+load_best_model_at_end: true
+
+# Warmup
+warmup_steps: 100
+warmup_ratio: 0.1
+
+# Weight decay
+weight_decay: 0.01
+
+# Special tokens
+special_tokens:
+  bos_token: "<|startoftext|>"
+  eos_token: "<|endoftext|>"
+  pad_token: "<|pad|>"
+
+# Chat template (for conversational format)
+chat_template: |
+  {% for message in messages %}
+  {% if message['role'] == 'user' %}
+  Human: {{ message['content'] }}
+  {% elif message['role'] == 'assistant' %}
+  Assistant: {{ message['content'] }}
+  {% endif %}
+  {% endfor %}
+  {% if add_generation_prompt %}
+  Assistant: 
+  {% endif %}
+
+# Islamic content specific settings
+islamic_content:
+  enable_content_filtering: true
+  require_islamic_context: true
+  max_response_length: 512
+  temperature: 0.7
+  top_p: 0.9
+  repetition_penalty: 1.1
+
+# Validation settings
+validation:
+  enable_islamic_accuracy_check: true
+  sample_prompts:
+    - "What are the five pillars of Islam?"
+    - "Explain the importance of prayer in Islam."
+    - "What is the concept of Tawhid?"
+    - "Describe the significance of Ramadan."
+    - "What are the qualities of a good Muslim?"
+  expected_keywords:
+    - "Islam"
+    - "Allah"
+    - "Prophet"
+    - "Quran"
+    - "prayer"
+    - "faith"
+
+# Hardware optimization
+hardware:
+  use_cpu: false
+  device_map: auto
+  max_memory_mb: 8192
+  torch_compile: false
+  flash_attention: false
+
+# Debugging
+debug: false
+deepspeed: # Optional DeepSpeed config path
+fsdp: # Optional FSDP config
+
+# Resume training
+resume_from_checkpoint: # Path to checkpoint if resuming
+
+# Wandb logging (optional)
+wandb_project: akhi-qlora-training
+wandb_entity: # Your wandb entity
+wandb_watch: false
+wandb_name: akhi-islamic-assistant
+wandb_log_model: false
+
+# HuggingFace Hub (optional)
+hub_model_id: # Your HF model ID for pushing
+hub_strategy: every_save
+hub_token: # Your HF token
+
+# Advanced settings
+strict: false
+model_config:
+  use_cache: false
+  pretraining_tp: 1
+  torch_dtype: bfloat16
+
+# Data preprocessing
+preprocess:
+  chat_template: true
+  sequence_len: 512
+  pad_to_sequence_len: true
+  shuffle: true
+
+# Post-training
+post_training:
+  merge_lora: false
+  push_to_hub: false
+  create_model_card: true
+  run_validation: true
+
+# Error handling
+error_handling:
+  ignore_data_skip: false
+  skip_prepare_dataset: false
+  continue_on_error: false
+
+# Performance monitoring
+monitoring:
+  track_memory_usage: true
+  log_gpu_memory: true
+  profile_training: false
+  save_training_metrics: true
+
+# Islamic content validation
+content_validation:
+  check_islamic_accuracy: true
+  validate_religious_content: true
+  filter_inappropriate_content: true
+  require_scholarly_references: false
+
+# Model evaluation metrics
+evaluation_metrics:
+  - perplexity
+  - bleu
+  - rouge
+  - islamic_content_accuracy
+  - response_relevance
+
+# Training environment
+environment:
+  seed: 42
+  deterministic: true
+  benchmark: false
+  num_workers: 4
+
+# Callbacks
+callbacks:
+  - early_stopping
+  - model_checkpoint
+  - learning_rate_monitor
+  - training_progress
+
+# Custom training settings for Islamic content
+islamic_training:
+  focus_areas:
+    - "Five Pillars of Islam"
+    - "Islamic Beliefs (Aqeedah)"
+    - "Islamic Practices (Fiqh)"
+    - "Quranic Knowledge"
+    - "Prophetic Traditions (Hadith)"
+    - "Islamic History"
+    - "Islamic Ethics and Morality"
+  
+  content_sources:
+    - "Authentic Islamic Texts"
+    - "Scholarly Interpretations"
+    - "Educational Materials"
+    - "Q&A Sessions"
+  
+  quality_requirements:
+    - "Factual Accuracy"
+    - "Religious Authenticity"
+    - "Educational Value"
+    - "Appropriate Tone"
+    - "Cultural Sensitivity"
+
+# Output configuration
+output:
+  model_name: "akhi-islamic-assistant"
+  version: "1.0.0"
+  description: "QLoRA fine-tuned Islamic knowledge assistant"
+  tags:
+    - "islamic-knowledge"
+    - "qlora"
+    - "conversational"
+    - "educational"
+  
+  files_to_save:
+    - "adapter_model.bin"
+    - "adapter_config.json"
+    - "tokenizer.json"
+    - "tokenizer_config.json"
+    - "special_tokens_map.json"
+    - "training_args.bin"
+    - "trainer_state.json"
+
+# Deployment preparation
+deployment:
+  create_inference_script: true
+  create_api_server: true
+  create_docker_config: true
+  create_model_card: true
+  prepare_huggingface_upload: true
+
+# Documentation
+documentation:
+  generate_training_report: true
+  include_metrics: true
+  include_examples: true
+  include_usage_guide: true
+  format: "markdown"
+
+# Backup and recovery
+backup:
+  enable_checkpointing: true
+  checkpoint_frequency: 100
+  keep_checkpoint_count: 3
+  backup_to_cloud: false
+  cloud_provider: # aws, gcp, azure
+
+# Security
+security:
+  validate_input_data: true
+  sanitize_outputs: true
+  prevent_harmful_content: true
+  respect_privacy: true
+
+# Compliance
+compliance:
+  follow_islamic_guidelines: true
+  respect_cultural_values: true
+  maintain_educational_focus: true
+  avoid_controversial_topics: true
+
+# Version control
+version_control:
+  track_model_versions: true
+  save_training_config: true
+  log_data_changes: true
+  maintain_reproducibility: true

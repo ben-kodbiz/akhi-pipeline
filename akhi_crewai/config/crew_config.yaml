@@ -140,6 +140,98 @@ performance:
   cache_embeddings: true
   cleanup_temp_files: true
 
+# QLoRA Training Configuration (Phase 8)
+qlora_training:
+  enabled: true
+  config_file: "config/qlora_config.yaml"
+  model_output_dir: "models/akhi_qlora"
+  training_data_dir: "data/qlora_training"
+  
+  # Training parameters
+  training:
+    epochs: 3
+    batch_size: 4
+    learning_rate: 0.0002
+    max_sequence_length: 512
+    gradient_accumulation_steps: 4
+    warmup_steps: 100
+    
+  # LoRA parameters
+  lora:
+    rank: 16
+    alpha: 32
+    dropout: 0.1
+    target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+    
+  # Quantization settings
+  quantization:
+    load_in_4bit: true
+    bnb_4bit_compute_dtype: "bfloat16"
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+    
+  # Validation settings
+  validation:
+    val_set_size: 0.1
+    eval_steps: 50
+    save_steps: 100
+    early_stopping_patience: 3
+    
+  # Islamic content validation
+  islamic_validation:
+    enable_content_filtering: true
+    require_islamic_context: true
+    check_accuracy: true
+    sample_prompts:
+      - "What are the five pillars of Islam?"
+      - "Explain the importance of prayer in Islam."
+      - "What is the concept of Tawhid?"
+      - "Describe the significance of Ramadan."
+      
+# Model Deployment Configuration
+model_deployment:
+  enabled: true
+  default_port: 8000
+  default_max_length: 512
+  default_temperature: 0.7
+  
+  # Deployment targets
+  targets:
+    local:
+      enabled: true
+      create_inference_script: true
+      create_readme: true
+      
+    api_server:
+      enabled: true
+      port: 8000
+      enable_auth: true
+      create_docs: true
+      
+    docker:
+      enabled: true
+      create_dockerfile: true
+      create_compose: true
+      base_image: "python:3.9-slim"
+      
+    huggingface:
+      enabled: false
+      create_model_card: true
+      auto_upload: false
+      
+  # Security settings
+  security:
+    enable_authentication: true
+    jwt_secret_key: "change-this-in-production"
+    token_expire_minutes: 30
+    
+  # Monitoring
+  monitoring:
+    enable_logging: true
+    log_level: "INFO"
+    track_performance: true
+    health_check_endpoint: true
+
 # Islamic Content Specific
 islamic_content:
   preferred_scholars:

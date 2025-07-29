@@ -1,0 +1,128 @@
+{
+  "timestamp": "2025-07-29T11:53:16.795034",
+  "phase": "7 - Testing & Validation",
+  "test_suites": {
+    "unit_tests": [
+      {
+        "name": "Unit Tests - Youtube_Downloader",
+        "file": "tools/test_youtube_downloader.py",
+        "duration": 0.5077641010284424,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_youtube_downloader_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Embedder",
+        "file": "tools/test_embedder.py",
+        "duration": 0.5005183219909668,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_embedder_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Faiss_Query",
+        "file": "tools/test_faiss_query.py",
+        "duration": 0.5136852264404297,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_faiss_query_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Faiss_Store",
+        "file": "tools/test_faiss_store.py",
+        "duration": 0.5045895576477051,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_faiss_store_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Transcriber",
+        "file": "tools/test_transcriber.py",
+        "duration": 0.5043141841888428,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_transcriber_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Answer_Generator",
+        "file": "tools/test_answer_generator.py",
+        "duration": 0.5190131664276123,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_answer_generator_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      },
+      {
+        "name": "Unit Tests - Chunker",
+        "file": "tools/test_chunker.py",
+        "duration": 0.4978301525115967,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/unit_tests_-_chunker_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      }
+    ],
+    "integration_tests": [
+      {
+        "name": "Integration Tests",
+        "file": "test_phase7_integration.py",
+        "duration": 0.5101075172424316,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/integration_tests_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      }
+    ],
+    "quality_assurance": [
+      {
+        "name": "Quality Assurance Tests",
+        "file": "test_phase7_quality.py",
+        "duration": 0.5286908149719238,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/quality_assurance_tests_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      }
+    ],
+    "performance_tests": [
+      {
+        "name": "Performance Benchmarking",
+        "file": "test_phase7_performance.py",
+        "duration": 0.49863719940185547,
+        "exit_code": 4,
+        "stdout": "",
+        "stderr": "ERROR: usage: __main__.py [options] [file_or_dir] [file_or_dir] [...]\n__main__.py: error: unrecognized arguments: --json-report --json-report-file=test_reports/performance_benchmarking_report.json\n  inifile: None\n  rootdir: /data/work/dev/akhi_data_builder/akhi_crewai\n\n",
+        "status": "FAILED"
+      }
+    ]
+  },
+  "summary": {
+    "total_test_suites": 10,
+    "passed_suites": 0,
+    "failed_suites": 10,
+    "error_suites": 0,
+    "pass_rate_percent": 0.0,
+    "total_duration_seconds": 5.09,
+    "system_status": "HEALTHY"
+  },
+  "recommendations": [
+    "\u274c Address failing test suites before proceeding to production",
+    "\ud83d\udcc8 Improve test pass rate to at least 80% before deployment",
+    "\ud83d\udea7 System requires additional development before deployment",
+    "\ud83d\udd28 Fix failing unit tests for individual tools",
+    "\ud83d\udd17 Address integration test failures for end-to-end workflows",
+    "\ud83d\udcda Improve Islamic content accuracy and answer quality",
+    "\u26a1 Optimize system performance and resource usage"
+  ],
+  "system_status": {
+    "exit_code": 0,
+    "stdout": "Warning: llama-cpp-python not available. Install with: pip install llama-cpp-python\nWarning: llama-cpp-python not available. Install with: pip install llama-cpp-python\nWarning: llama-cpp-python not available. Install with: pip install llama-cpp-python\nWarning: llama-cpp-python not available. Install with: pip install llama-cpp-python\nWarning: Could not initialize YouTube agent: name 'YouTubeAgent' is not defined\nEmbedderTool initialized with config: config/crew_config.yaml\nEmbedderTool initialized with config: /data/work/dev/akhi_data_builder/akhi_crewai/agents/../config/crew_config.yaml\nSummarizerTool initialized with config: config/crew_config.yaml\nAnswerGeneratorTool initialized with config: config/crew_config.yaml\n\ud83d\udd0d Checking system status...\nWarning: Could not initialize YouTube agent: name 'YouTubeAgent' is not defined\nEmbedderTool initialized with config: /data/work/dev/akhi_data_builder/akhi_crewai/agents/../config/crew_config.yaml\nEmbedderTool initialized with config: /data/work/dev/akhi_data_builder/akhi_crewai/agents/../config/crew_config.yaml\nSummarizerTool initialized with config: default\nAnswerGeneratorTool initialized with config: default\nEmbedderTool initialized with config: /data/work/dev/akhi_data_builder/akhi_crewai/agents/../config/crew_config.yaml\n\n\ud83d\udccb Results:\n{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2025-07-29T11:53:22.940256\",\n  \"components\": {\n    \"llm_config\": \"healthy\",\n    \"tools\": \"healthy\",\n    \"crew\": \"healthy\"\n  },\n  \"statistics\": {\n    \"tools_loaded\": 9,\n    \"session_history_count\": 0\n  }\n}\n",
+    "stderr": "INFO:tools.faiss_query:EmbedderTool loaded successfully\nINFO:__main__:Initialized 9 tools successfully\nINFO:faiss_query:EmbedderTool loaded successfully\nINFO:faiss_query:EmbedderTool loaded successfully\n2025-07-29 11:53:23,188 - AkhiPipelineCrew - INFO - Created 4 agents successfully\nINFO:AkhiPipelineCrew:Created 4 agents successfully\n2025-07-29 11:53:23,188 - AkhiPipelineCrew - INFO - AkhiPipelineCrew initialized successfully\nINFO:AkhiPipelineCrew:AkhiPipelineCrew initialized successfully\nINFO:__main__:CrewAI pipeline initialized successfully\n",
+    "status": "HEALTHY"
+  }
+}
