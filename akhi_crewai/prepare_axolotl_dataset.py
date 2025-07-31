@@ -108,6 +108,8 @@ class AxolotlDatasetPreparer:
     def normalize_sample_format(self, sample: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Normalize sample to standard Axolotl format"""
         try:
+            logger.debug(f"Processing sample with keys: {list(sample.keys())}")
+            
             # Detect and convert different formats
             if 'conversations' in sample:
                 # Already in conversations format
@@ -149,6 +151,55 @@ class AxolotlDatasetPreparer:
                     "source": sample.get('source', 'unknown')
                 }
             
+            elif 'segments' in sample and 'metadata' in sample:
+                # Whisper transcript format
+                full_text = sample.get('transcript', '')
+                
+                # If no transcript field, combine segments
+                if not full_text and sample.get('segments'):
+                    segments = sample['segments']
+                    full_text = ' '.join([seg.get('text', '').strip() for seg in segments if seg.get('text')])
+                
+                logger.debug(f"Full text length: {len(full_text)}")
+                
+                if len(full_text) > 200:
+                    # Create instruction-response pairs from transcript
+                    # Split into smaller, manageable chunks
+                    sentences = [s.strip() for s in full_text.split('.') if s.strip()]
+                    
+                    logger.debug(f"Number of sentences: {len(sentences)}")
+                    
+                    if len(sentences) >= 4:
+                        # Create smaller chunks to stay within content limits
+                        chunk_size = min(20, len(sentences) // 4)  # Smaller chunks
+                        
+                        # Take a reasonable chunk from the beginning
+                        context_sentences = sentences[:chunk_size]
+                        response_sentences = sentences[chunk_size:chunk_size*2]
+                        
+                        context = '. '.join(context_sentences) + '.'
+                        response = '. '.join(response_sentences) + '.'
+                        
+                        # Ensure content is within reasonable limits
+                        if len(context) > 2000:
+                            context = context[:2000] + '...'
+                        if len(response) > 2000:
+                            response = response[:2000] + '...'
+                        
+                        # Create Islamic-focused instruction
+                        instruction = "Based on this Islamic teaching, please continue the explanation:"
+                        
+                        logger.debug(f"Created sample with context length: {len(context)}, response length: {len(response)}")
+                        
+                        return {
+                            "conversations": [
+                                {"role": "user", "content": f"{instruction}\n\n{context}"},
+                                {"role": "assistant", "content": response}
+                            ],
+                            "source": sample.get('source', 'whisper_transcript'),
+                            "metadata": sample.get('metadata', {})
+                        }
+            
             elif 'text' in sample:
                 # Raw text - create instruction to continue
                 text = sample['text']
@@ -184,26 +235,33 @@ class AxolotlDatasetPreparer:
     def validate_sample(self, sample: Dict[str, Any]) -> bool:
         """Validate sample quality and format"""
         try:
+            logger.debug(f"Validating sample with keys: {list(sample.keys())}")
+            
             if 'conversations' not in sample:
+                logger.debug("Validation failed: no conversations key")
                 return False
             
             conversations = sample['conversations']
             if not isinstance(conversations, list) or len(conversations) < 2:
+                logger.debug(f"Validation failed: conversations not list or too short: {len(conversations) if isinstance(conversations, list) else 'not list'}")
                 return False
             
             # Check for required roles
             roles = [conv.get('role') for conv in conversations]
             if 'user' not in roles or 'assistant' not in roles:
+                logger.debug(f"Validation failed: missing required roles. Found: {roles}")
                 return False
             
             # Check content length
-            for conv in conversations:
+            for i, conv in enumerate(conversations):
                 content = conv.get('content', '')
                 if not content or len(content.strip()) < 10:
+                    logger.debug(f"Validation failed: conversation {i} content too short: {len(content.strip())}")
                     return False
                 
                 # Check for reasonable length limits
                 if len(content) > self.config.get('max_content_length', 4096):
+                    logger.debug(f"Validation failed: conversation {i} content too long: {len(content)}")
                     return False
             
             # Islamic content validation
@@ -216,9 +274,14 @@ class AxolotlDatasetPreparer:
                 ])
                 
                 # Require at least one Islamic keyword
-                if not any(keyword in full_text for keyword in islamic_keywords):
+                found_keywords = [kw for kw in islamic_keywords if kw in full_text]
+                if not found_keywords:
+                    logger.debug(f"Validation failed: no Islamic keywords found. Text sample: {full_text[:200]}...")
                     return False
+                else:
+                    logger.debug(f"Found Islamic keywords: {found_keywords}")
             
+            logger.debug("Sample validation passed")
             return True
             
         except Exception as e:

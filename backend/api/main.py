@@ -158,8 +158,17 @@ def transcribe_audio():
         transcription_status["total_files"] = total_files
         print(f"Starting transcription of {total_files} files")
         
-        # Initialize the Whisper model
-        model = WhisperModel("base", device="cpu", compute_type="int8")
+        # Initialize the Whisper model with local cache directory
+        # Set up local model cache to avoid downloading from Hugging Face
+        cache_dir = os.path.join(BASE_DIR, "models", "whisper_cache")
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        model = WhisperModel(
+            "base", 
+            device="cpu", 
+            compute_type="int8",
+            download_root=cache_dir  # Cache models locally to minimize future downloads
+        )
         
         # Transcribe each file
         for i, file in enumerate(mp3_files):

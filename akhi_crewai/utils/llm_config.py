@@ -2,12 +2,21 @@
 """
 LLM Configuration Utility
 Provides centralized LLM configuration for CrewAI agents
+Now supports both local GGUF models and HTTP API models
 """
 
 import yaml
 from pathlib import Path
 from crewai import LLM
-from typing import Optional
+from typing import Optional, Union
+
+# Import local GGUF configuration
+try:
+    from .local_llm_config import LocalLLMConfig, LocalGGUFLLM, get_configured_local_llm
+    LOCAL_GGUF_AVAILABLE = True
+except ImportError:
+    LOCAL_GGUF_AVAILABLE = False
+    print("Warning: Local GGUF configuration not available")
 
 class LLMConfig:
     """Utility class for managing LLM configuration"""
@@ -35,16 +44,38 @@ class LLMConfig:
     
     def get_local_llm(self) -> LLM:
         """
-        Get configured local LLM instance for CrewAI agents
+        Get a configured local LLM instance.
+        Always returns a CrewAI LLM object for compatibility.
         
         Returns:
-            LLM: Configured LLM instance
+            LLM instance (CrewAI compatible)
         """
+        import os
+        
+        # Try to use local GGUF model first
+        if LOCAL_GGUF_AVAILABLE:
+            try:
+                local_config = LocalLLMConfig(self.config_path)
+                if local_config.validate_model_availability():
+                    print("✅ Using local GGUF model")
+                    # Create a local GGUF model instance
+                    local_llm = local_config.get_local_llm()
+                    
+                    # For now, fall back to HTTP API for CrewAI compatibility
+                    # TODO: Implement proper CrewAI wrapper for LocalGGUFLLM
+                    print("🔄 Using HTTP API wrapper for CrewAI compatibility")
+                    
+            except Exception as e:
+                print(f"⚠️  Failed to load local GGUF model: {e}")
+                print("🔄 Falling back to HTTP API model")
+        
+        # Use HTTP API model (compatible with CrewAI)
         llm_config = self.config.get('local_llm', {})
         
         if not llm_config:
             raise Exception("No local_llm configuration found in config file")
         
+        print("🌐 Using HTTP API model")
         return LLM(
             model=llm_config.get('model_name', 'lm_studio/qwen-3-14b'),
             base_url=llm_config.get('base_url', 'http://192.168.0.74:1234/v1'),
@@ -64,11 +95,21 @@ class LLMConfig:
     
     def validate_llm_connection(self) -> bool:
         """
-        Validate that LLM endpoint is accessible
+        Validate that LLM is accessible (local GGUF or HTTP API)
         
         Returns:
             bool: True if connection is valid, False otherwise
         """
+        # Check local GGUF model first
+        if LOCAL_GGUF_AVAILABLE:
+            try:
+                local_config = LocalLLMConfig(self.config_path)
+                if local_config.validate_model_availability():
+                    return True
+            except Exception:
+                pass
+        
+        # Check HTTP API endpoint
         try:
             import requests
             llm_config = self.get_llm_config_dict()

@@ -277,6 +277,68 @@ class YouTubeDownloaderTool(BaseTool):
                 'error': f"Unexpected error during download: {str(e)}"
             }
     
+    async def download_video(self, url: str, output_dir: str = "./downloads", 
+                           extract_audio: bool = True, audio_dir: str = None, 
+                           quality: str = "best[height<=720]", audio_format: str = "mp3",
+                           audio_quality: str = "0") -> Dict[str, Any]:
+        """Download video and optionally extract audio in MP3 format.
+        
+        Args:
+            url: YouTube video URL
+            output_dir: Directory for video files
+            extract_audio: Whether to extract audio
+            audio_dir: Directory for audio files (defaults to output_dir/audio)
+            quality: Video quality selector
+            audio_format: Audio format (always MP3 for consistency)
+            audio_quality: Audio quality setting
+            
+        Returns:
+            Download result dictionary
+        """
+        try:
+            # Validate URL
+            if not self._validate_youtube_url(url):
+                return {'success': False, 'error': f'Invalid YouTube URL: {url}'}
+            
+            # Get video info
+            video_info = self._get_video_info(url)
+            title = video_info.get('title', 'Unknown')
+            
+            # Set audio directory
+            if audio_dir is None:
+                audio_dir = os.path.join(output_dir, 'audio')
+            
+            # Ensure MP3 format for consistency
+            audio_format = "mp3"
+            
+            # Download audio only (more efficient for our use case)
+            if extract_audio:
+                download_result = self._download_audio(
+                    url, audio_dir, audio_format, audio_quality, "%(title)s.%(ext)s"
+                )
+                
+                if download_result['success']:
+                    return {
+                        'success': True,
+                        'title': title,
+                        'audio_path': download_result['file_path'],
+                        'audio_file': download_result['file_path'],  # Keep for backward compatibility
+                        'file_size': download_result['file_size'],
+                        'format': audio_format,
+                        'video_info': video_info
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'error': download_result['error'],
+                        'title': title
+                    }
+            else:
+                return {'success': False, 'error': 'Audio extraction is required'}
+                
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    
     def _run(self, url: str, output_dir: str = "./downloads", audio_format: str = "mp3", 
              audio_quality: str = "0", filename_template: str = "%(title)s.%(ext)s", 
              extract_info: bool = True) -> str:

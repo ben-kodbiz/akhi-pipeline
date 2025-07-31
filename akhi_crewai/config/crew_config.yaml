@@ -49,9 +49,9 @@ faiss:
   index_dir: "data/embeddings"
   metadata_file: "data/embeddings/metadata.jsonl"
 
-# Local LLM Configuration
+# Local LLM Configuration (GGUF Model)
 llm:
-  model_path: "models/qwen-3-8b-chat.gguf"
+  model_path: "models/Qwen3-1.7B.Q4_K_M.gguf"  # Updated to use downloaded model
   context_length: 4096
   max_tokens: 512
   temperature: 0.7
@@ -60,10 +60,12 @@ llm:
   repeat_penalty: 1.1
   n_gpu_layers: 0  # Set to -1 for full GPU offload
 
+# Local LLM Configuration for CrewAI agents
+# Uses HTTP API for CrewAI compatibility
 local_llm:
-  provider: "lm_studio"
-  model_name: "lm_studio/qwen-3-14b"  # Updated to match working example
-  base_url: "http://192.168.0.74:1234/v1"  # Updated to match working example
+  provider: "http_api"
+  model_name: "local/Qwen3-1.7B.Q4_K_M.gguf"
+  base_url: "http://localhost:8000/v1"  # Local HTTP API endpoint
   api_key: null
   temperature: 0.7
   max_tokens: 2048

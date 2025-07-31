@@ -20,7 +20,7 @@ from dataclasses import dataclass, asdict
 
 # Import Akhi CrewAI tools
 from tools.youtube_downloader import YouTubeDownloaderTool
-from tools.transcriber import TranscriberTool
+from tools.transcriber import TranscriptionTool
 from tools.qlora_formatter import QLoRAFormatterTool
 from tools.axolotl_trainer import AxolotlTrainerTool
 from tools.model_validator import ModelValidatorTool
@@ -85,7 +85,7 @@ class QLoRAProductionPipeline:
         
         # Initialize tools
         self.youtube_downloader = YouTubeDownloaderTool()
-        self.transcriber = TranscriberTool()
+        self.transcriber = TranscriptionTool()
         self.qlora_formatter = QLoRAFormatterTool()
         self.axolotl_trainer = AxolotlTrainerTool()
         self.model_validator = ModelValidatorTool()

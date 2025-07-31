@@ -64,6 +64,35 @@ wheels/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
+# Models and AI files
+models/
+*.gguf
+*.bin
+*.safetensors
+*.pt
+*.pth
+*.h5
+*.pkl
+*.pickle
+whisper_cache/
+
+# Pipeline outputs and data
+pipeline_output/
+axolotl_data/models/
+data/audio/
+data/videos/
+data/transcripts/
+data/embeddings/
+output/
+outputs/
+
+# Large datasets
+*.jsonl
+*.csv
+*.tsv
+*.parquet
 
 # Editor directories and files
 .idea/

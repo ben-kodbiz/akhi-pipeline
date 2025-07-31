@@ -1,0 +1,38 @@
+{
+  "generation_info": {
+    "generated_at": "2025-07-31T09:53:27.315654",
+    "input_directory": "pipeline_output/transcripts",
+    "output_directory": "axolotl_data",
+    "config": {
+      "input_dir": "pipeline_output/transcripts",
+      "output_dir": "axolotl_data",
+      "base_model": "microsoft/DialoGPT-medium",
+      "max_sequence_length": 2048,
+      "validation_split": 0.1,
+      "num_epochs": 3,
+      "batch_size": 4,
+      "learning_rate": 0.0002,
+      "lora_r": 16,
+      "lora_alpha": 32,
+      "validate_islamic_content": true,
+      "max_content_length": 4096
+    }
+  },
+  "dataset_statistics": {
+    "total_files": 1,
+    "total_samples": 1,
+    "train_samples": 0,
+    "val_samples": 1,
+    "avg_input_length": 2069.0,
+    "avg_output_length": 1595.0,
+    "format_distribution": {
+      "whisper_transcript": 1
+    },
+    "quality_scores": []
+  },
+  "quality_metrics": {
+    "validation_split": 0.1,
+    "islamic_content_validated": true,
+    "max_content_length": 4096
+  }
+}

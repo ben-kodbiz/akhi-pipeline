@@ -176,8 +176,17 @@ class Transcriber:
         try:
             from faster_whisper import WhisperModel
             
-            # Initialize the Whisper model
-            model = WhisperModel(self.model_size, device=self.device, compute_type=self.compute_type)
+            # Initialize the Whisper model with local cache directory
+            # Set up local model cache to avoid downloading from Hugging Face
+            cache_dir = os.path.join(BASE_DIR, "models", "whisper_cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            model = WhisperModel(
+                self.model_size, 
+                device=self.device, 
+                compute_type=self.compute_type,
+                download_root=cache_dir  # Cache models locally to minimize future downloads
+            )
             
             # Transcribe each file
             for i, (file_path, video_id) in enumerate(untranscribed):

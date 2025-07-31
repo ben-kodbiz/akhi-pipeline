@@ -30,7 +30,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Import pipeline components
 from tools.youtube_downloader import YouTubeDownloaderTool
 from tools.youtube_search import YouTubeSearchTool
-from tools.transcriber import TranscriberTool
+from tools.transcriber import TranscriptionTool
 from tools.summarizer import SummarizerTool
 from tools.qlora_formatter import QLoRAFormatterTool
 from tools.axolotl_trainer import AxolotlTrainerTool
@@ -59,7 +59,7 @@ class QLoRAPipelineOrchestrator:
         # Initialize tools
         self.youtube_search = YouTubeSearchTool()
         self.youtube_downloader = YouTubeDownloaderTool()
-        self.transcriber = TranscriberTool()
+        self.transcriber = TranscriptionTool()
         self.summarizer = SummarizerTool()
         self.qlora_formatter = QLoRAFormatterTool()
         self.axolotl_trainer = AxolotlTrainerTool()
@@ -92,13 +92,13 @@ class QLoRAPipelineOrchestrator:
         
         logger.info(f"Created output directories in {self.output_dir}")
     
-    async def run_pipeline(self, query: Optional[str] = None, urls: Optional[List[str]] = None) -> Dict[str, Any]:
+    async def run_pipeline(self, query: Optional[str] = None, urls: Optional[List[str]] = None, duration: str = 'any') -> Dict[str, Any]:
         """Execute the complete pipeline"""
         try:
             logger.info("Starting QLoRA Pipeline Orchestration")
             
             # Stage 1: Search/Collect URLs
-            video_urls = await self.stage_1_search_collect(query, urls)
+            video_urls = await self.stage_1_search_collect(query, urls, duration)
             
             # Stage 2: Download Videos
             downloaded_files = await self.stage_2_download(video_urls)
@@ -133,7 +133,7 @@ class QLoRAPipelineOrchestrator:
             })
             raise
     
-    async def stage_1_search_collect(self, query: Optional[str], urls: Optional[List[str]]) -> List[str]:
+    async def stage_1_search_collect(self, query: Optional[str], urls: Optional[List[str]], duration: str = 'any') -> List[str]:
         """Stage 1: Search YouTube or use provided URLs"""
         logger.info("Stage 1: Searching/Collecting video URLs")
         self.state['stage'] = 'search_collect'
@@ -148,7 +148,7 @@ class QLoRAPipelineOrchestrator:
             # Search YouTube
             max_results = self.config.get('max_videos', 10)
             search_filters = self.config.get('search_filters', {
-                'duration': 'medium',  # 4-20 minutes
+                'duration': duration,  # Use provided duration filter
                 'type': 'video',
                 'features': ['subtitles']
             })
@@ -248,6 +248,7 @@ class QLoRAPipelineOrchestrator:
                     audio_path=audio_path,
                     output_dir=str(self.output_dir / 'transcripts'),
                     model_size=self.config.get('whisper_model', 'base'),
+                    device='cpu',  # Force CPU to avoid CUDA issues
                     language='auto'
                 )
                 
@@ -692,6 +693,7 @@ Examples:
     parser.add_argument('--config', '-c', type=str, help='YAML configuration file')
     parser.add_argument('--output', '-o', type=str, default='./pipeline_output', help='Output directory')
     parser.add_argument('--max-videos', type=int, default=10, help='Maximum videos to process')
+    parser.add_argument('--duration', type=str, default='any', choices=['short', 'medium', 'long', 'any'], help='Video duration filter: short (<4min), medium (4-20min), long (>20min), any')
     parser.add_argument('--quality-threshold', type=float, default=0.7, help='Content quality threshold')
     
     # Model options
@@ -742,7 +744,7 @@ Examples:
         
         # Initialize and run pipeline
         orchestrator = QLoRAPipelineOrchestrator(config)
-        report = await orchestrator.run_pipeline(query=args.query, urls=urls)
+        report = await orchestrator.run_pipeline(query=args.query, urls=urls, duration=args.duration)
         
         # Print summary
         print("\n" + "="*60)

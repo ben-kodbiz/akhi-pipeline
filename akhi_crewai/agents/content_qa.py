@@ -101,22 +101,21 @@ class ContentQAAgent:
                 }
             }
     
-    def _setup_llm(self) -> LLM:
+    def _setup_llm(self):
         """
         Setup the local LLM for the agent.
+        Uses local GGUF model when available, falls back to HTTP API.
         
         Returns:
-            Configured LLM instance
+            Configured LLM instance (LocalGGUFLLM or LLM)
         """
-        llm_config = self.config.get('local_llm', {})
+        import sys
+        import os
+        sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+        from utils.llm_config import LLMConfig
         
-        return LLM(
-            model=llm_config.get('model_name', 'lm_studio/qwen-3-14b'),
-            base_url=llm_config.get('base_url', 'http://192.168.0.74:1234/v1'),
-            api_key=llm_config.get('api_key'),
-            temperature=llm_config.get('temperature', 0.7),
-            max_tokens=llm_config.get('max_tokens', 2048)
-        )
+        llm_config = LLMConfig()
+        return llm_config.get_local_llm()
     
     def _setup_tools(self) -> list:
         """

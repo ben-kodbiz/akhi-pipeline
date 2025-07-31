@@ -191,11 +191,16 @@ class TranscriptionTool(BaseTool):
         include_timestamps = kwargs.get('include_timestamps', True)
         word_timestamps = kwargs.get('word_timestamps', False)
         
-        # Initialize Whisper model
+        # Initialize Whisper model with local cache directory
+        # Set up local model cache to avoid downloading from Hugging Face
+        cache_dir = os.path.join(os.path.dirname(__file__), '../../models/whisper_cache')
+        os.makedirs(cache_dir, exist_ok=True)
+        
         model = WhisperModel(
             model_size, 
             device=device, 
-            compute_type="int8" if device == "cpu" else "float16"
+            compute_type="int8" if device == "cpu" else "float16",
+            download_root=cache_dir  # Cache models locally to minimize future downloads
         )
         
         # Transcription parameters
@@ -308,6 +313,53 @@ class TranscriptionTool(BaseTool):
             saved_files['json'] = json_file
         
         return saved_files
+    
+    async def transcribe_audio(self, audio_path: str, output_dir: str, model_size: str = 'base', language: str = 'auto', device: str = 'auto') -> Dict[str, Any]:
+        """Transcribe audio file and return structured result for pipeline integration.
+        
+        Args:
+            audio_path: Path to the audio file
+            output_dir: Output directory for transcripts
+            model_size: Whisper model size
+            language: Language code or 'auto'
+            
+        Returns:
+            Dictionary with transcription results
+        """
+        try:
+            # Validate audio file
+            self._validate_audio_file(audio_path)
+            
+            # Perform transcription
+            result = self._transcribe_single_file(
+                audio_path,
+                model_size=model_size,
+                device=device,
+                language=language,
+                include_timestamps=True,
+                word_timestamps=False
+            )
+            
+            # Save results
+            saved_files = self._save_transcription(
+                result, audio_path, 'both', output_dir
+            )
+            
+            return {
+                'success': True,
+                'transcript_path': saved_files.get('text'),
+                'transcript_json': saved_files.get('json'),
+                'transcript_text': result['transcript_text'],
+                'duration': result['metadata']['duration'],
+                'language': result['metadata']['language'],
+                'confidence': result['metadata']['language_probability']
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
     
     def _run(self, **kwargs) -> str:
         """Execute the transcription tool.

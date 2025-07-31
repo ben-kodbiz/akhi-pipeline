@@ -21,9 +21,13 @@ except ImportError:
     pass
 
 try:
-    from youtubesearchpython import VideosSearch
+    from youtube_search import YoutubeSearch
 except ImportError:
-    VideosSearch = None
+    try:
+        from youtubesearchpython import VideosSearch
+    except ImportError:
+        VideosSearch = None
+        YoutubeSearch = None
 
 
 class YouTubeSearchInput(BaseModel):
@@ -158,11 +162,11 @@ class YouTubeSearchTool(BaseTool):
         try:
             # Create search object and get results
             videos_search = VideosSearch(query, limit=max_results)
-            results = videos_search.result()
+            results = videos_search.result()['result']
             
             # Format results
             formatted_results = []
-            for i, video in enumerate(results.get('result', [])):
+            for i, video in enumerate(results):
                 formatted_video = {
                     'title': video.get('title', ''),
                     'url': video.get('link', ''),
@@ -203,9 +207,9 @@ class YouTubeSearchTool(BaseTool):
         scored_results = []
         for video in results:
             score = 0
-            title = video.get('title', '').lower()
-            channel = video.get('channel', '').lower()
-            description = video.get('description', '').lower()
+            title = (video.get('title') or '').lower()
+            channel = (video.get('channel') or '').lower()
+            description = (video.get('description') or '').lower()
             
             # Check for preferred scholars
             for scholar in preferred_scholars:
@@ -230,6 +234,59 @@ class YouTubeSearchTool(BaseTool):
         scored_results.sort(key=lambda x: x['islamic_relevance_score'], reverse=True)
         
         return scored_results
+    
+    async def search_videos(self, query: str, max_results: int = 10, filters: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Search for videos and return structured results.
+        
+        Args:
+            query: Search query
+            max_results: Maximum number of results
+            filters: Additional search filters
+            
+        Returns:
+            Dictionary with success status and video results
+        """
+        try:
+            # Use the _run method to get formatted results
+            formatted_output = self._run(query, max_results)
+            
+            # Parse the formatted output to extract video URLs and metadata
+            videos = []
+            if "Found" in formatted_output and "videos" in formatted_output:
+                lines = formatted_output.split('\n')
+                current_video = {}
+                
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith(tuple('123456789')):
+                        # New video entry
+                        if current_video:
+                            videos.append(current_video)
+                        title = line.split('**')[1] if '**' in line else line.split('. ')[1]
+                        current_video = {'title': title}
+                    elif line.startswith('URL:'):
+                        current_video['url'] = line.replace('URL: ', '')
+                    elif line.startswith('Channel:'):
+                        current_video['channel'] = line.replace('Channel: ', '')
+                    elif line.startswith('Duration:'):
+                        current_video['duration'] = line.replace('Duration: ', '')
+                
+                # Add the last video
+                if current_video:
+                    videos.append(current_video)
+            
+            return {
+                'success': True,
+                'videos': videos,
+                'total_found': len(videos)
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e),
+                'videos': []
+            }
     
     def _run(self, query: str, max_results: int = 10, duration: str = "medium", 
              upload_date: str = "any", sort_by: str = "relevance", 
