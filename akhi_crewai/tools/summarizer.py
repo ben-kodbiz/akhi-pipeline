@@ -197,7 +197,7 @@ class SummarizerTool(BaseTool):
         if not LLAMA_CPP_AVAILABLE:
             return None
         
-        target_path = model_path or self.config['model']['path']
+        target_path = model_path or self._config['model']['path']
         
         if not target_path or not Path(target_path).exists():
             print("Warning: No valid LLM model path provided or model file not found")

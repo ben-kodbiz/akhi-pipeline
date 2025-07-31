@@ -234,11 +234,18 @@ class QLoRAProductionPipeline:
                 )
                 
                 if transcript_result["success"]:
-                    # Quality assessment
-                    qa_result = await self.content_qa.assess_content(
-                        transcript_path=transcript_result["transcript_path"],
-                        islamic_keywords=self.config.islamic_keywords
-                    )
+                    # Quality assessment - read transcript content
+                    try:
+                        with open(transcript_result["transcript_path"], 'r', encoding='utf-8') as f:
+                            transcript_content = f.read()
+                        
+                        qa_result = self.content_qa.assess_content(
+                            content=transcript_content,
+                            content_type="transcript"
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to read transcript {transcript_result['transcript_path']}: {e}")
+                        qa_result = {'success': False, 'error': str(e), 'quality_score': 0.0}
                     
                     # Combine results
                     combined_result = {
@@ -287,13 +294,20 @@ class QLoRAProductionPipeline:
                 logger.info(f"Formatting: {transcript_file.name}")
                 
                 # Format for QLoRA
-                format_result = await self.qlora_formatter.format_content(
-                    input_path=str(transcript_file),
-                    output_dir=str(self.output_dir / "qlora_datasets"),
-                    format_type="alpaca",
-                    max_length=self.config.max_sequence_length,
-                    islamic_context=True
+                format_result_str = self.qlora_formatter._run(
+                    transcript_dir=str(transcript_file.parent),
+                    output_file=str(self.output_dir / "qlora_datasets" / f"{transcript_file.stem}.jsonl"),
+                    min_segment_words=50,
+                    max_segment_words=500,
+                    include_metadata=True,
+                    filter_islamic_content=True
                 )
+                
+                # Parse the result (it returns a JSON string)
+                try:
+                    format_result = json.loads(format_result_str)
+                except json.JSONDecodeError:
+                    format_result = {'success': False, 'error': 'Failed to parse QLoRA formatter output'}
                 
                 if format_result["success"]:
                     qlora_datasets.append(format_result)

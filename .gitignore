@@ -78,6 +78,15 @@ models/
 *.pickle
 whisper_cache/
 
+# QLoRA and fine-tuned models
+qwen-*-qlora*/
+checkpoint-*/
+optimizer.pt
+adapter_model.safetensors
+tokenizer.json
+*.model
+*.tokenizer
+
 # Pipeline outputs and data
 pipeline_output/
 axolotl_data/models/

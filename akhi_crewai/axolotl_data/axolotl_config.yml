@@ -39,7 +39,7 @@ logging_steps: 1
 saves_per_epoch: 1
 evals_per_epoch: 4
 wandb_project: akhi-islamic-ai-20250731
-wandb_name: islamic-model-20250731-095327
+wandb_name: islamic-model-20250731-095859
 special_tokens:
   bos_token: <s>
   eos_token: </s>

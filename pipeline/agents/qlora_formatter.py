@@ -389,6 +389,10 @@ class QLoRAFormatter:
         Returns:
             Dictionary with generation results
         """
+        print("[DEBUG] generate_json() called")
+        print(f"[DEBUG] TRANSCRIPTS_DIR: {TRANSCRIPTS_DIR}")
+        print(f"[DEBUG] OUTPUT_JSON_FILE: {OUTPUT_JSON_FILE}")
+        
         # Update JSON generation status
         self.json_generation_status.update({
             "is_running": True,
@@ -400,6 +404,7 @@ class QLoRAFormatter:
         # Get transcript files
         transcript_files = self._get_transcript_files()
         total_files = len(transcript_files)
+        print(f"[DEBUG] Found {total_files} transcript files: {transcript_files}")
         
         if total_files == 0:
             self.json_generation_status.update({

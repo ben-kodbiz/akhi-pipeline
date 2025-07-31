@@ -20,9 +20,10 @@ import yaml
 import argparse
 import logging
 import asyncio
+import hashlib
 from datetime import datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Set
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -91,6 +92,113 @@ class QLoRAPipelineOrchestrator:
             (self.output_dir / dir_name).mkdir(parents=True, exist_ok=True)
         
         logger.info(f"Created output directories in {self.output_dir}")
+    
+    def check_existing_audio(self, video_urls: List[str]) -> Dict[str, Any]:
+        """Check for existing audio files to avoid re-downloading"""
+        audio_dir = self.output_dir / 'audio'
+        existing_files = {}
+        new_urls = []
+        
+        for url in video_urls:
+            # Create a hash of the URL to use as filename identifier
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:12]
+            
+            # Check for existing audio files with this hash
+            audio_files = list(audio_dir.glob(f"*{url_hash}*.mp3"))
+            if audio_files:
+                existing_files[url] = {
+                    'audio_path': str(audio_files[0]),
+                    'title': audio_files[0].stem,
+                    'url': url,
+                    'video_id': url.split('v=')[-1] if 'v=' in url else url_hash
+                }
+                logger.info(f"Found existing audio for: {url}")
+            else:
+                new_urls.append(url)
+        
+        return {
+            'existing_files': list(existing_files.values()),
+            'new_urls': new_urls,
+            'skipped_count': len(existing_files)
+        }
+    
+    def check_existing_transcripts(self, audio_files: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Check for existing transcripts to avoid re-transcribing"""
+        transcript_dir = self.output_dir / 'transcripts'
+        existing_transcripts = []
+        files_to_transcribe = []
+        
+        for file_info in audio_files:
+            audio_path = file_info.get('audio_path', '')
+            audio_name = Path(audio_path).stem if audio_path else ''
+            
+            # Look for existing transcript files
+            transcript_files = list(transcript_dir.glob(f"{audio_name}*.txt"))
+            if transcript_files:
+                existing_transcripts.append({
+                    **file_info,
+                    'transcript_path': str(transcript_files[0]),
+                    'success': True
+                })
+                logger.info(f"Found existing transcript for: {audio_name}")
+            else:
+                files_to_transcribe.append(file_info)
+        
+        return {
+            'existing_transcripts': existing_transcripts,
+            'files_to_transcribe': files_to_transcribe,
+            'skipped_count': len(existing_transcripts)
+        }
+    
+    def check_existing_qlora_data(self, summaries: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Check for existing QLoRA formatted data"""
+        jsonl_dir = self.output_dir / 'jsonl'
+        existing_qlora = []
+        summaries_to_format = []
+        
+        for summary_info in summaries:
+            summary_path = summary_info.get('summary_path', '')
+            summary_name = Path(summary_path).stem if summary_path else ''
+            
+            # Look for existing QLoRA files
+            qlora_files = list(jsonl_dir.glob(f"{summary_name}*.jsonl"))
+            if qlora_files:
+                existing_qlora.append({
+                    **summary_info,
+                    'output_path': str(qlora_files[0]),
+                    'success': True
+                })
+                logger.info(f"Found existing QLoRA data for: {summary_name}")
+            else:
+                summaries_to_format.append(summary_info)
+        
+        return {
+            'existing_qlora': existing_qlora,
+            'summaries_to_format': summaries_to_format,
+            'skipped_count': len(existing_qlora)
+        }
+    
+    def deduplicate_qlora_dataset(self, all_samples: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove duplicate entries from QLoRA dataset"""
+        seen_hashes: Set[str] = set()
+        deduplicated = []
+        
+        for sample in all_samples:
+            # Create hash based on instruction and input content
+            content = sample.get('instruction', '') + sample.get('input', '') + sample.get('output', '')
+            content_hash = hashlib.md5(content.encode('utf-8')).hexdigest()
+            
+            if content_hash not in seen_hashes:
+                seen_hashes.add(content_hash)
+                deduplicated.append(sample)
+            else:
+                logger.debug(f"Removed duplicate sample with hash: {content_hash[:12]}...")
+        
+        removed_count = len(all_samples) - len(deduplicated)
+        if removed_count > 0:
+            logger.info(f"Removed {removed_count} duplicate samples from dataset")
+        
+        return deduplicated
     
     async def run_pipeline(self, query: Optional[str] = None, urls: Optional[List[str]] = None, duration: str = 'any') -> Dict[str, Any]:
         """Execute the complete pipeline"""
@@ -179,15 +287,22 @@ class QLoRAPipelineOrchestrator:
         return video_urls
     
     async def stage_2_download(self, video_urls: List[str]) -> List[Dict[str, Any]]:
-        """Stage 2: Download videos and extract audio"""
+        """Stage 2: Download videos and extract audio (with existing file checks)"""
         logger.info("Stage 2: Downloading videos and extracting audio")
         self.state['stage'] = 'download'
         
-        downloaded_files = []
+        # Check for existing audio files first
+        audio_check = self.check_existing_audio(video_urls)
+        existing_files = audio_check['existing_files']
+        new_urls = audio_check['new_urls']
         
-        for i, url in enumerate(video_urls):
+        logger.info(f"Found {audio_check['skipped_count']} existing audio files, downloading {len(new_urls)} new files")
+        
+        downloaded_files = list(existing_files)  # Start with existing files
+        
+        for i, url in enumerate(new_urls):
             try:
-                logger.info(f"Downloading video {i+1}/{len(video_urls)}: {url}")
+                logger.info(f"Downloading video {i+1}/{len(new_urls)}: {url}")
                 
                 result = await self.youtube_downloader.download_video(
                     url=url,
@@ -217,7 +332,9 @@ class QLoRAPipelineOrchestrator:
         # Save download report
         download_report = {
             'total_attempted': len(video_urls),
-            'successful_downloads': len(downloaded_files),
+            'existing_files': len(existing_files),
+            'new_downloads': len(downloaded_files) - len(existing_files),
+            'total_available': len(downloaded_files),
             'success_rate': len(downloaded_files) / len(video_urls) * 100,
             'files': downloaded_files
         }
@@ -225,17 +342,24 @@ class QLoRAPipelineOrchestrator:
         with open(self.output_dir / 'logs' / 'download_report.json', 'w') as f:
             json.dump(download_report, f, indent=2)
         
-        logger.info(f"Downloaded {len(downloaded_files)}/{len(video_urls)} videos successfully")
+        logger.info(f"Total files available: {len(downloaded_files)}/{len(video_urls)} (existing: {len(existing_files)}, new: {len(downloaded_files) - len(existing_files)})")
         return downloaded_files
     
     async def stage_3_transcribe(self, downloaded_files: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Stage 3: Transcribe audio files"""
+        """Stage 3: Transcribe audio files (with existing transcript checks)"""
         logger.info("Stage 3: Transcribing audio files")
         self.state['stage'] = 'transcribe'
         
-        transcripts = []
+        # Check for existing transcripts first
+        transcript_check = self.check_existing_transcripts(downloaded_files)
+        existing_transcripts = transcript_check['existing_transcripts']
+        files_to_transcribe = transcript_check['files_to_transcribe']
         
-        for file_info in downloaded_files:
+        logger.info(f"Found {transcript_check['skipped_count']} existing transcripts, transcribing {len(files_to_transcribe)} new files")
+        
+        transcripts = list(existing_transcripts)  # Start with existing transcripts
+        
+        for file_info in files_to_transcribe:
             try:
                 audio_path = file_info.get('audio_path')
                 if not audio_path or not os.path.exists(audio_path):
@@ -273,7 +397,9 @@ class QLoRAPipelineOrchestrator:
         # Save transcription report
         transcription_report = {
             'total_files': len(downloaded_files),
-            'successful_transcriptions': len(transcripts),
+            'existing_transcripts': len(existing_transcripts),
+            'new_transcriptions': len(transcripts) - len(existing_transcripts),
+            'total_available': len(transcripts),
             'success_rate': len(transcripts) / len(downloaded_files) * 100 if downloaded_files else 0,
             'transcripts': transcripts
         }
@@ -281,7 +407,7 @@ class QLoRAPipelineOrchestrator:
         with open(self.output_dir / 'logs' / 'transcription_report.json', 'w') as f:
             json.dump(transcription_report, f, indent=2)
         
-        logger.info(f"Transcribed {len(transcripts)}/{len(downloaded_files)} files successfully")
+        logger.info(f"Total transcripts available: {len(transcripts)}/{len(downloaded_files)} (existing: {len(existing_transcripts)}, new: {len(transcripts) - len(existing_transcripts)})")
         return transcripts
     
     async def stage_4_summarize(self, transcripts: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -300,13 +426,17 @@ class QLoRAPipelineOrchestrator:
                 
                 logger.info(f"Summarizing: {os.path.basename(transcript_path)}")
                 
-                # Quality check first
-                qa_result = await self.content_qa.assess_content(
-                    transcript_path=transcript_path,
-                    islamic_keywords=self.config.get('islamic_keywords', [
-                        'Allah', 'Prophet', 'Quran', 'Hadith', 'Islam', 'Muslim',
-                        'Salah', 'Zakat', 'Hajj', 'Ramadan', 'Tawheed', 'Fiqh'
-                    ])
+                # Quality check first - read transcript content
+                try:
+                    with open(transcript_path, 'r', encoding='utf-8') as f:
+                        transcript_content = f.read()
+                except Exception as e:
+                    logger.warning(f"Failed to read transcript {transcript_path}: {e}")
+                    continue
+                
+                qa_result = self.content_qa.assess_content(
+                    content=transcript_content,
+                    content_type="transcript"
                 )
                 
                 # Only summarize high-quality Islamic content
@@ -315,24 +445,44 @@ class QLoRAPipelineOrchestrator:
                     logger.info(f"Skipping low-quality content: {os.path.basename(transcript_path)}")
                     continue
                 
-                result = await self.summarizer.summarize_content(
-                    input_path=transcript_path,
-                    output_dir=str(self.output_dir / 'summaries'),
-                    summary_type='instructional',
-                    max_length=self.config.get('summary_max_length', 500)
+                # Use SummarizerTool's _run method
+                result_str = self.summarizer._run(
+                    text=transcript_content,
+                    summary_length='medium',
+                    strategy='abstractive',
+                    preserve_islamic_terms=True,
+                    include_key_points=True
                 )
                 
-                if result['success']:
-                    # Add metadata and QA results
+                # Parse the result (it returns a JSON string)
+                import json
+                try:
+                    result = json.loads(result_str)
+                except json.JSONDecodeError:
+                    result = {'success': False, 'error': 'Failed to parse summarizer output'}
+                
+                # Save summary to file if successful
+                if result.get('success', False):
+                    summary_filename = os.path.basename(transcript_path).replace('.txt', '_summary.txt')
+                    summary_path = self.output_dir / 'summaries' / summary_filename
+                    with open(summary_path, 'w', encoding='utf-8') as f:
+                        f.write(result.get('summary', ''))
+                    result['summary_path'] = str(summary_path)
+                
+                if result.get('success', False):
+                    # Add metadata
                     result['transcript_info'] = transcript_info
                     result['quality_assessment'] = qa_result
                     summaries.append(result)
                     logger.info(f"Summarized: {result['summary_path']}")
                 else:
                     logger.warning(f"Summarization failed: {result.get('error', 'Unknown error')}")
+                    logger.warning(f"Full result: {result}")
                     
             except Exception as e:
                 logger.error(f"Error summarizing {transcript_info.get('transcript_path', 'unknown')}: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
                 self.state['errors'].append({
                     'stage': 'summarize',
                     'file': transcript_info.get('transcript_path', 'unknown'),
@@ -356,13 +506,20 @@ class QLoRAPipelineOrchestrator:
         return summaries
     
     async def stage_5_format_qlora(self, summaries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Stage 5: Format content for QLoRA training"""
+        """Stage 5: Format content for QLoRA training (with existing data checks)"""
         logger.info("Stage 5: Formatting content for QLoRA")
         self.state['stage'] = 'format_qlora'
         
-        qlora_data = []
+        # Check for existing QLoRA data first
+        qlora_check = self.check_existing_qlora_data(summaries)
+        existing_qlora = qlora_check['existing_qlora']
+        summaries_to_format = qlora_check['summaries_to_format']
         
-        for summary_info in summaries:
+        logger.info(f"Found {qlora_check['skipped_count']} existing QLoRA files, formatting {len(summaries_to_format)} new files")
+        
+        qlora_data = list(existing_qlora)  # Start with existing QLoRA data
+        
+        for summary_info in summaries_to_format:
             try:
                 summary_path = summary_info.get('summary_path')
                 if not summary_path or not os.path.exists(summary_path):
@@ -371,13 +528,20 @@ class QLoRAPipelineOrchestrator:
                 
                 logger.info(f"Formatting for QLoRA: {os.path.basename(summary_path)}")
                 
-                result = await self.qlora_formatter.format_content(
-                    input_path=summary_path,
-                    output_dir=str(self.output_dir / 'jsonl'),
-                    format_type=self.config.get('qlora_format', 'alpaca'),
-                    max_length=self.config.get('max_sequence_length', 2048),
-                    islamic_context=True
+                result_str = self.qlora_formatter._run(
+                    transcript_dir=str(self.output_dir / 'summaries'),
+                    output_file=str(self.output_dir / 'jsonl' / f'{os.path.basename(summary_path).replace(".txt", ".jsonl")}'),
+                    min_segment_words=50,
+                    max_segment_words=500,
+                    include_metadata=True,
+                    filter_islamic_content=True
                 )
+                
+                # Parse the result (it returns a JSON string)
+                try:
+                    result = json.loads(result_str)
+                except json.JSONDecodeError:
+                    result = {'success': False, 'error': 'Failed to parse QLoRA formatter output'}
                 
                 if result['success']:
                     # Add metadata
@@ -400,7 +564,9 @@ class QLoRAPipelineOrchestrator:
         # Save formatting report
         formatting_report = {
             'total_summaries': len(summaries),
-            'successful_formatting': len(qlora_data),
+            'existing_qlora': len(existing_qlora),
+            'new_formatting': len(qlora_data) - len(existing_qlora),
+            'total_available': len(qlora_data),
             'success_rate': len(qlora_data) / len(summaries) * 100 if summaries else 0,
             'total_samples': sum(item.get('samples_generated', 0) for item in qlora_data),
             'formatted_files': qlora_data
@@ -409,7 +575,7 @@ class QLoRAPipelineOrchestrator:
         with open(self.output_dir / 'logs' / 'formatting_report.json', 'w') as f:
             json.dump(formatting_report, f, indent=2)
         
-        logger.info(f"Formatted {len(qlora_data)}/{len(summaries)} summaries for QLoRA")
+        logger.info(f"Total QLoRA files available: {len(qlora_data)}/{len(summaries)} (existing: {len(existing_qlora)}, new: {len(qlora_data) - len(existing_qlora)})")
         return qlora_data
     
     async def stage_6_prepare_dataset(self, qlora_data: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -438,6 +604,11 @@ class QLoRAPipelineOrchestrator:
                                 all_samples.extend(data)
                             else:
                                 all_samples.append(data)
+            
+            # Deduplicate the dataset
+            logger.info(f"Deduplicating dataset: {len(all_samples)} samples before deduplication")
+            all_samples = self.deduplicate_qlora_dataset(all_samples)
+            logger.info(f"After deduplication: {len(all_samples)} samples")
             
             # Split into train/validation
             val_split = self.config.get('validation_split', 0.1)

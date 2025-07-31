@@ -288,6 +288,87 @@ class ContentQAAgent:
                 'error': f"Summarization failed: {str(e)}"
             }
     
+    def assess_content(self, content: str, content_type: str = "transcript") -> Dict[str, Any]:
+        """
+        Assess the quality and relevance of Islamic content.
+        
+        Args:
+            content: Content text to assess
+            content_type: Type of content (transcript, summary, etc.)
+            
+        Returns:
+            Assessment results dictionary with quality metrics
+        """
+        try:
+            # Basic content validation
+            if not content or len(content.strip()) < 50:
+                return {
+                    'success': False,
+                    'quality_score': 0.0,
+                    'relevance_score': 0.0,
+                    'issues': ['Content too short or empty'],
+                    'recommendations': ['Provide more substantial content']
+                }
+            
+            # Islamic content keywords for relevance scoring
+            islamic_keywords = [
+                'allah', 'quran', 'hadith', 'prophet', 'muhammad', 'islam', 'islamic',
+                'muslim', 'prayer', 'salah', 'dua', 'sunnah', 'ummah', 'jihad',
+                'ramadan', 'hajj', 'zakat', 'shahada', 'tawhid', 'iman', 'taqwa'
+            ]
+            
+            content_lower = content.lower()
+            keyword_matches = sum(1 for keyword in islamic_keywords if keyword in content_lower)
+            relevance_score = min(keyword_matches / 5.0, 1.0)  # Normalize to 0-1
+            
+            # Quality assessment based on content characteristics
+            word_count = len(content.split())
+            sentence_count = len([s for s in content.split('.') if s.strip()])
+            avg_sentence_length = word_count / max(sentence_count, 1)
+            
+            # Quality scoring factors
+            length_score = min(word_count / 500.0, 1.0)  # Prefer longer content
+            structure_score = 1.0 if 10 <= avg_sentence_length <= 30 else 0.7
+            
+            quality_score = (length_score * 0.4 + structure_score * 0.3 + relevance_score * 0.3)
+            
+            # Identify potential issues
+            issues = []
+            recommendations = []
+            
+            if word_count < 100:
+                issues.append('Content is quite short')
+                recommendations.append('Consider providing more detailed content')
+            
+            if relevance_score < 0.3:
+                issues.append('Low Islamic content relevance')
+                recommendations.append('Ensure content focuses on Islamic topics')
+            
+            if avg_sentence_length > 40:
+                issues.append('Sentences may be too long')
+                recommendations.append('Consider breaking down complex sentences')
+            
+            return {
+                'success': True,
+                'quality_score': round(quality_score, 3),
+                'relevance_score': round(relevance_score, 3),
+                'word_count': word_count,
+                'sentence_count': sentence_count,
+                'avg_sentence_length': round(avg_sentence_length, 1),
+                'keyword_matches': keyword_matches,
+                'issues': issues,
+                'recommendations': recommendations,
+                'assessment': 'high' if quality_score >= 0.7 else 'medium' if quality_score >= 0.4 else 'low'
+            }
+            
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f"Content assessment failed: {str(e)}",
+                'quality_score': 0.0,
+                'relevance_score': 0.0
+            }
+    
     def batch_qa(self, questions: List[str], 
                 index_name: str = "islamic_content") -> List[Dict[str, Any]]:
         """

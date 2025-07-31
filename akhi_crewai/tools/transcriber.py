@@ -196,12 +196,29 @@ class TranscriptionTool(BaseTool):
         cache_dir = os.path.join(os.path.dirname(__file__), '../../models/whisper_cache')
         os.makedirs(cache_dir, exist_ok=True)
         
-        model = WhisperModel(
-            model_size, 
-            device=device, 
-            compute_type="int8" if device == "cpu" else "float16",
-            download_root=cache_dir  # Cache models locally to minimize future downloads
-        )
+        # Force offline mode to prevent any network connections
+        import os as env_os
+        env_os.environ['HF_HUB_OFFLINE'] = '1'
+        env_os.environ['TRANSFORMERS_OFFLINE'] = '1'
+        env_os.environ['HF_DATASETS_OFFLINE'] = '1'
+        
+        try:
+            model = WhisperModel(
+                model_size, 
+                device=device, 
+                compute_type="int8" if device == "cpu" else "float16",
+                download_root=cache_dir,  # Cache models locally to minimize future downloads
+                local_files_only=True  # Force using only local files
+            )
+        except Exception as e:
+            # If local_files_only fails, try without it but with offline env vars
+            print(f"Warning: local_files_only failed, trying without it: {e}")
+            model = WhisperModel(
+                model_size, 
+                device=device, 
+                compute_type="int8" if device == "cpu" else "float16",
+                download_root=cache_dir
+            )
         
         # Transcription parameters
         transcribe_params = {

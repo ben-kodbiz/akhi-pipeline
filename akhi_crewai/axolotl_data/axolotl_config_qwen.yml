@@ -1,0 +1,118 @@
+base_model: Qwen/Qwen2.5-1.5B-Instruct
+model_type: Qwen2ForCausalLM
+tokenizer_type: AutoTokenizer
+
+# QLoRA Configuration
+load_in_8bit: false
+load_in_4bit: true
+strict: false
+
+# LoRA Parameters
+adapter: qlora
+lora_model_dir:
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.1
+lora_target_linear: true
+lora_fan_in_fan_out:
+
+# Target modules for Qwen architecture
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# Training Parameters
+sequence_len: 2048
+sample_packing: true
+pad_to_sequence_len: true
+
+# Dataset Configuration
+datasets:
+  - path: /data/work/dev/akhi_data_builder/pipeline/output/json/akhi_lora.json
+    type: alpaca
+
+# Training Hyperparameters
+num_epochs: 3
+micro_batch_size: 1
+gradient_accumulation_steps: 8
+learning_rate: 0.0002
+lr_scheduler: cosine
+warmup_steps: 100
+
+# Optimization
+optimizer: adamw_bnb_8bit
+weight_decay: 0.01
+max_grad_norm: 1.0
+
+# Evaluation
+eval_sample_packing: false
+val_set_size: 0.1
+eval_steps: 50
+save_steps: 100
+
+# Output Configuration
+output_dir: ./qwen-1.7b-islamic-qlora
+hub_model_id: qwen-1.7b-islamic-qlora
+hub_strategy: every_save
+
+# Logging
+logging_steps: 10
+wandb_project: qwen-islamic-training
+wandb_entity:
+wandb_watch:
+wandb_name: qwen-1.7b-islamic-qlora
+wandb_log_model:
+
+# Special Tokens for Qwen
+special_tokens:
+  bos_token: "<|im_start|>"
+  eos_token: "<|im_end|>"
+  unk_token: "<|endoftext|>"
+
+# Performance Optimizations
+flash_attention: true
+gradient_checkpointing: true
+fp16: true
+tf32: true
+
+# DeepSpeed Configuration
+deepspeed: deepspeed_configs/zero2.json
+
+# Chat Template for Qwen
+chat_template: |
+  {% for message in messages %}
+  {% if message['role'] == 'user' %}
+  <|im_start|>user
+  {{ message['content'] }}<|im_end|>
+  {% elif message['role'] == 'assistant' %}
+  <|im_start|>assistant
+  {{ message['content'] }}<|im_end|>
+  {% endif %}
+  {% endfor %}
+  {% if add_generation_prompt %}
+  <|im_start|>assistant
+  {% endif %}
+
+# Early Stopping
+early_stopping_patience: 3
+
+# Resuming
+resume_from_checkpoint:
+
+# Saves
+save_safetensors: true
+
+# Eval
+do_eval: true
+eval_table_size:
+eval_max_new_tokens: 128
+eval_causal_lm_metrics:
+  - sacrebleu
+  - comet
+  - ter
+  - chrf

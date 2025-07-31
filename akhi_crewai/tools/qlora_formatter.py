@@ -20,19 +20,36 @@ from pathlib import Path
 from pydantic import BaseModel, Field, field_validator
 from crewai.tools import BaseTool
 
-# Import existing QLoRA formatter
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../pipeline/agents'))
+# Import existing QLoRA formatter with robust path resolution
+import pathlib
 
-# Import QLoRAFormatter with error handling for circular imports
+# Use absolute path resolution to avoid relative path issues
+project_root = pathlib.Path(__file__).resolve().parents[2]
+qlora_formatter_path = project_root / "pipeline" / "agents" / "qlora_formatter.py"
+
+print(f"[DEBUG] Attempting to load QLoRAFormatter from: {qlora_formatter_path}")
+print(f"[DEBUG] File exists: {qlora_formatter_path.exists()}")
+
+# Import QLoRAFormatter with error handling
 try:
-    from qlora_formatter import QLoRAFormatter
-except ImportError:
-    # If not available, create a minimal placeholder
-    class QLoRAFormatter:
-        def __init__(self, *args, **kwargs):
-            pass
-        def generate_json(self, *args, **kwargs):
-            return {'success': False, 'error': 'QLoRAFormatter not available'}
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "pipeline_qlora_formatter", 
+        str(qlora_formatter_path)
+    )
+    if spec is None:
+        raise ImportError(f"Could not create spec for {qlora_formatter_path}")
+    
+    pipeline_qlora_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(pipeline_qlora_module)
+    QLoRAFormatter = pipeline_qlora_module.QLoRAFormatter
+    print(f"[DEBUG] QLoRAFormatter successfully loaded from: {QLoRAFormatter.__module__}")
+    
+except Exception as e:
+    print(f"[ERROR] Failed to import QLoRAFormatter: {str(e)}")
+    print(f"[ERROR] Exception type: {type(e).__name__}")
+    # Fail hard during development to catch import issues
+    raise ImportError(f"[FATAL] Failed to import QLoRAFormatter from {qlora_formatter_path}: {e}")
 
 
 class QLoRAFormatterInput(BaseModel):
@@ -192,35 +209,27 @@ class QLoRAFormatterTool(BaseTool):
             
             # Generate the QLoRA training data
             result = formatter.generate_json()
+            print(f"[DEBUG] QLoRA formatter result: {result}")
             
             # Prepare response with statistics
             if result.get('success', False):
-                stats = result.get('stats', {})
+                # Extract actual statistics from the result
+                examples_generated = result.get('examples_generated', 0)
+                files_processed = result.get('files_processed', 0)
+                
                 message = (
                     f"✅ QLoRA training data generated successfully!\n"
-                    f"📁 Output file: {result.get('output_file', output_file)}\n"
+                    f"📁 Output file: {output_file}\n"
                     f"📊 Statistics:\n"
-                    f"   • Total conversations: {stats.get('total_conversations', 0)}\n"
-                    f"   • Total examples: {stats.get('total_examples', 0)}\n"
-                    f"   • Files processed: {stats.get('files_processed', 0)}\n"
-                    f"   • Average words per example: {stats.get('avg_words_per_example', 0):.1f}\n"
-                    f"   • Islamic content ratio: {stats.get('islamic_content_ratio', 0):.2%}\n"
+                    f"   • Total examples: {examples_generated}\n"
+                    f"   • Files processed: {files_processed}\n"
+                    f"   • Message: {result.get('message', 'No message')}\n"
                     f"\n🎯 Ready for QLoRA fine-tuning with Axolotl!"
                 )
                 
-                # Add metadata if requested
-                if include_metadata:
-                    metadata = result.get('metadata', {})
-                    message += (
-                        f"\n\n📋 Metadata:\n"
-                        f"   • Processing time: {metadata.get('processing_time', 'N/A')}\n"
-                        f"   • Source videos: {metadata.get('source_videos', 0)}\n"
-                        f"   • Quality score: {metadata.get('quality_score', 'N/A')}"
-                    )
-                
                 return message
             else:
-                error_msg = result.get('error', 'Unknown error occurred')
+                error_msg = result.get('message', result.get('error', 'Unknown error occurred'))
                 return f"❌ QLoRA formatting failed: {error_msg}"
                 
         except Exception as e:

@@ -21,13 +21,19 @@ except ImportError:
     pass
 
 try:
-    from youtube_search import YoutubeSearch
+    from youtubesearchpython import VideosSearch
+except ImportError:
+    VideosSearch = None
+
+try:
+    # Try the correct import for youtube-search-python package
+    from youtubesearchpython import VideosSearch as YTSearch
 except ImportError:
     try:
-        from youtubesearchpython import VideosSearch
+        # Fallback to youtube-search if available
+        from youtube_search import YoutubeSearch as YTSearch
     except ImportError:
-        VideosSearch = None
-        YoutubeSearch = None
+        YTSearch = None
 
 
 class YouTubeSearchInput(BaseModel):
@@ -156,17 +162,17 @@ class YouTubeSearchTool(BaseTool):
         Returns:
             List of video information dictionaries
         """
-        if VideosSearch is None:
+        if YTSearch is None:
             raise Exception("youtubesearchpython not available for fallback search")
         
         try:
-            # Create search object and get results
-            videos_search = VideosSearch(query, limit=max_results)
-            results = videos_search.result()['result']
+            # Use youtubesearchpython package
+            videos_search = YTSearch(query, limit=max_results)
+            results = videos_search.result()
             
             # Format results
             formatted_results = []
-            for i, video in enumerate(results):
+            for i, video in enumerate(results.get('result', [])):
                 formatted_video = {
                     'title': video.get('title', ''),
                     'url': video.get('link', ''),
@@ -177,12 +183,13 @@ class YouTubeSearchTool(BaseTool):
                     'views': video.get('viewCount', {}).get('text', ''),
                     'published': video.get('publishedTime', ''),
                     'description': video.get('descriptionSnippet', [{}])[0].get('text', '') if video.get('descriptionSnippet') else '',
-                    'thumbnails': video.get('thumbnails', []),
+                    'thumbnails': [thumb.get('url', '') for thumb in video.get('thumbnails', [])],
                     'metadata': {
                         'search_query': query,
                         'search_rank': i + 1
                     }
                 }
+                
                 formatted_results.append(formatted_video)
             
             return formatted_results
