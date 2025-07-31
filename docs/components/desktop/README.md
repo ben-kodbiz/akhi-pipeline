@@ -1,13 +1,21 @@
 # Akhi Data Builder - Desktop App
 
-A Tauri-based desktop application for the Akhi Data Builder system. This desktop app provides a native interface for managing the Islamic dataset pipeline by calling the Python CLI tools directly.
+A Tauri-based cross-platform desktop application for the Akhi Data Builder system. This desktop app provides a native interface for managing the Islamic dataset pipeline with direct integration to the agentic pipeline.
 
 ## Features
 
-- Upload/download YouTube video links
-- Start transcription jobs
-- Browse and export JSONs
-- Native desktop experience
+### Core Functionality
+- **YouTube Integration**: Upload and manage video links
+- **Pipeline Control**: Start and monitor transcription jobs
+- **File Management**: Browse, preview, and export generated files
+- **Native Experience**: Cross-platform desktop application
+
+### Advanced Features
+- **Real-time Progress**: Live pipeline status monitoring
+- **QLoRA Integration**: Direct access to training data generation
+- **Error Handling**: Comprehensive error display and recovery
+- **Offline Capability**: Local processing without internet dependency
+- **Performance Monitoring**: Resource usage and processing statistics
 
 ## Tech Stack
 
@@ -53,4 +61,40 @@ src-tauri/          # Rust backend code
 
 ## Implementation Notes
 
-The desktop app calls the Python CLI tools in the `/pipeline` directory directly using Tauri's command API. This allows for a native desktop experience while leveraging the existing Python pipeline.
+The desktop app integrates with the agentic pipeline in the `/pipeline` directory using Tauri's command API. This provides:
+
+- **Direct Pipeline Access**: Calls to `run_pipeline.py` for processing
+- **State Management**: Integration with `status_tracker.json` for progress
+- **File System Access**: Direct access to generated files and logs
+- **Native Performance**: Rust backend for optimal performance
+
+## Running the Desktop App
+
+### Quick Start
+
+```bash
+# Navigate to desktop app directory
+cd desktop_app
+
+# Install dependencies
+npm install
+
+# Run in development mode
+npm run tauri dev
+```
+
+### Production Build
+
+```bash
+# Build for current platform
+npm run tauri build
+
+# The built application will be in src-tauri/target/release/
+```
+
+## Configuration
+
+The desktop app automatically detects the pipeline configuration from:
+- `../pipeline/config.yaml` - Pipeline settings
+- `../pipeline/db/status_tracker.json` - Processing state
+- `../akhi_crewai/config/` - Agent configurations
