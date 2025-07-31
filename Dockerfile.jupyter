@@ -1,0 +1,66 @@
+# Akhi Data Builder - Jupyter Development Dockerfile
+# Phase 9: Production Dockerization
+
+FROM python:3.9-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    ffmpeg \
+    build-essential \
+    pkg-config \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements
+COPY akhi_crewai/requirements.txt ./requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install Jupyter and data science tools
+RUN pip install --no-cache-dir \
+    jupyter \
+    jupyterlab \
+    notebook \
+    ipywidgets \
+    matplotlib \
+    seaborn \
+    plotly \
+    pandas \
+    numpy \
+    scipy \
+    scikit-learn \
+    wordcloud \
+    nltk \
+    spacy \
+    transformers[torch] \
+    datasets \
+    accelerate
+
+# Download NLTK data
+RUN python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords'); nltk.download('vader_lexicon')"
+
+# Create notebooks directory
+RUN mkdir -p /app/notebooks
+
+# Copy sample notebooks
+COPY docs/examples/ /app/notebooks/examples/
+
+# Expose Jupyter port
+EXPOSE 8888
+
+# Default command
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]

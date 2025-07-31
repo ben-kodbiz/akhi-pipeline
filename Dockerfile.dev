@@ -1,0 +1,74 @@
+# Akhi Data Builder - Development Dockerfile
+# Phase 9: Production Dockerization
+
+FROM python:3.9-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEVELOPMENT=true
+
+# Install system dependencies including development tools
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    wget \
+    ffmpeg \
+    build-essential \
+    pkg-config \
+    libffi-dev \
+    libssl-dev \
+    vim \
+    nano \
+    htop \
+    tree \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY akhi_crewai/requirements.txt ./requirements.txt
+
+# Install Python dependencies including development tools
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir \
+    debugpy \
+    ipython \
+    jupyter \
+    jupyterlab \
+    watchdog \
+    pytest-watch \
+    black \
+    flake8 \
+    isort \
+    mypy
+
+# Copy application code (will be overridden by volume mounts in dev)
+COPY akhi_crewai/ ./akhi_crewai/
+COPY pipeline/ ./pipeline/
+COPY data/ ./data/
+COPY docs/ ./docs/
+
+# Create necessary directories
+RUN mkdir -p /app/logs \
+    /app/models \
+    /app/deployments \
+    /app/data/crew_outputs \
+    /app/pipeline/db \
+    /app/notebooks
+
+# Set permissions
+RUN chmod +x /app/pipeline/run_pipeline.sh
+
+# Expose ports
+EXPOSE 8000 8001 5678 8888
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Default command (can be overridden)
+CMD ["python", "-m", "akhi_crewai.main", "--api", "--debug"]

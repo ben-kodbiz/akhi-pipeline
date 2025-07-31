@@ -1,0 +1,15 @@
+# Akhi Data Builder - Grafana Dashboard Configuration
+# Phase 9: Production Dockerization
+
+apiVersion: 1
+
+providers:
+  - name: 'default'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
