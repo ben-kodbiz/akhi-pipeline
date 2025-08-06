@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import TranscriptsList from './pages/TranscriptsList';
 import TranscriptEditor from './pages/TranscriptEditor';
 import JsonPreview from './pages/JsonPreview';
+import QLoRA from './pages/QLoRA';
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route path="transcripts" element={<TranscriptsList />} />
         <Route path="transcripts/:fileName" element={<TranscriptEditor />} />
         <Route path="json" element={<JsonPreview />} />
+        <Route path="qlora" element={<QLoRA />} />
       </Route>
     </Routes>
   );

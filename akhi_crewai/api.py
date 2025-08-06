@@ -34,6 +34,7 @@ import uvicorn
 sys.path.append(os.path.dirname(__file__))
 
 from main import AkhiPipelineApp
+from agents.qlora_trainer import QLoRATrainerAgent
 
 
 # Pydantic models for API requests/responses
@@ -57,6 +58,19 @@ class QueryRequest(BaseModel):
 class SummarizeRequest(BaseModel):
     content_type: str = Field("recent", description="Type of content to summarize")
     limit: int = Field(5, description="Number of items to include", ge=1, le=20)
+
+
+# QLoRA-specific request models
+class QLoRATrainingRequest(BaseModel):
+    model_name: str = Field("akhi-islamic-assistant", description="Name for the trained model")
+    training_data_path: str = Field(..., description="Path to training data file")
+    base_model: str = Field("microsoft/DialoGPT-medium", description="Base model to fine-tune")
+    num_epochs: int = Field(3, description="Number of training epochs", ge=1, le=10)
+    learning_rate: float = Field(0.0002, description="Learning rate", gt=0, le=0.01)
+    batch_size: int = Field(1, description="Training batch size", ge=1, le=8)
+    lora_rank: int = Field(16, description="LoRA rank", ge=1, le=64)
+    lora_alpha: int = Field(32, description="LoRA alpha", ge=1, le=128)
+    max_seq_length: int = Field(512, description="Maximum sequence length", ge=128, le=2048)
 
 
 class APIResponse(BaseModel):
@@ -137,15 +151,24 @@ if static_path.exists():
 
 # Initialize components
 pipeline_app = None
+qlora_trainer = None
 websocket_manager = WebSocketManager()
 
 
 def get_pipeline_app() -> AkhiPipelineApp:
-    """Get or initialize the pipeline application."""
+    """Get or create pipeline app instance."""
     global pipeline_app
     if pipeline_app is None:
         pipeline_app = AkhiPipelineApp()
     return pipeline_app
+
+
+def get_qlora_trainer() -> QLoRATrainerAgent:
+    """Get or create QLoRA trainer instance."""
+    global qlora_trainer
+    if qlora_trainer is None:
+        qlora_trainer = QLoRATrainerAgent()
+    return qlora_trainer
 
 
 def create_response(status: str, data: Any = None, message: str = None) -> APIResponse:
@@ -336,6 +359,185 @@ async def summarize_content(request: SummarizeRequest):
             data=result,
             message="Summary generated successfully"
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# QLoRA API Endpoints
+@app.get("/api/qlora/configs", response_model=APIResponse)
+async def get_qlora_configs():
+    """Get QLoRA training configurations."""
+    try:
+        trainer = get_qlora_trainer()
+        config = trainer.get_config()
+        
+        return create_response(
+            status="success",
+            data={
+                "default_config": config,
+                "available_models": [
+                    "microsoft/DialoGPT-medium",
+                    "microsoft/DialoGPT-small",
+                    "Qwen/Qwen-1_8B-Chat",
+                    "microsoft/DialoGPT-large"
+                ],
+                "training_parameters": {
+                    "num_epochs": {"min": 1, "max": 10, "default": 3},
+                    "learning_rate": {"min": 0.0001, "max": 0.01, "default": 0.0002},
+                    "batch_size": {"min": 1, "max": 8, "default": 1},
+                    "lora_rank": {"min": 1, "max": 64, "default": 16},
+                    "lora_alpha": {"min": 1, "max": 128, "default": 32},
+                    "max_seq_length": {"min": 128, "max": 2048, "default": 512}
+                }
+            },
+            message="QLoRA configurations retrieved successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/qlora/train", response_model=APIResponse)
+async def start_qlora_training(request: QLoRATrainingRequest, background_tasks: BackgroundTasks):
+    """Start QLoRA training job."""
+    try:
+        trainer = get_qlora_trainer()
+        
+        # Create job configuration
+        job_config = {
+            "model_name": request.model_name,
+            "training_data_path": request.training_data_path,
+            "base_model": request.base_model,
+            "num_epochs": request.num_epochs,
+            "learning_rate": request.learning_rate,
+            "batch_size": request.batch_size,
+            "lora_rank": request.lora_rank,
+            "lora_alpha": request.lora_alpha,
+            "max_seq_length": request.max_seq_length
+        }
+        
+        # Start training job
+        job_id = trainer.start_training_job(job_config)
+        
+        # Notify via WebSocket
+        await websocket_manager.broadcast(
+            json.dumps({
+                "type": "qlora_training_started",
+                "job_id": job_id,
+                "model_name": request.model_name,
+                "timestamp": datetime.now().isoformat()
+            })
+        )
+        
+        return create_response(
+            status="success",
+            data={
+                "job_id": job_id,
+                "status": "started",
+                "config": job_config
+            },
+            message=f"QLoRA training job {job_id} started successfully"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/qlora/training/jobs", response_model=APIResponse)
+async def get_training_jobs():
+    """Get all QLoRA training jobs."""
+    try:
+        trainer = get_qlora_trainer()
+        
+        # Get current training status
+        status = trainer.get_training_status()
+        
+        jobs = []
+        if status.get('current_job'):
+            jobs.append({
+                "id": status['current_job'],
+                "status": status.get('status', 'unknown'),
+                "progress": status.get('progress', 0),
+                "model_path": status.get('model_path'),
+                "last_checkpoint": status.get('last_checkpoint'),
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            })
+        
+        return create_response(
+            status="success",
+            data={"jobs": jobs},
+            message=f"Retrieved {len(jobs)} training jobs"
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/qlora/status/{job_id}", response_model=APIResponse)
+async def get_training_status(job_id: str):
+    """Get status of a specific training job."""
+    try:
+        trainer = get_qlora_trainer()
+        status = trainer.get_training_status()
+        
+        if status.get('current_job') != job_id:
+            raise HTTPException(status_code=404, detail=f"Training job {job_id} not found")
+        
+        return create_response(
+            status="success",
+            data={
+                "job_id": job_id,
+                "status": status.get('status', 'unknown'),
+                "progress": status.get('progress', 0),
+                "model_path": status.get('model_path'),
+                "last_checkpoint": status.get('last_checkpoint'),
+                "validation_results": status.get('validation_results'),
+                "updated_at": datetime.now().isoformat()
+            },
+            message=f"Training status for job {job_id}"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/qlora/metrics/{job_id}", response_model=APIResponse)
+async def get_training_metrics(job_id: str):
+    """Get training metrics for a specific job."""
+    try:
+        trainer = get_qlora_trainer()
+        status = trainer.get_training_status()
+        
+        if status.get('current_job') != job_id:
+            raise HTTPException(status_code=404, detail=f"Training job {job_id} not found")
+        
+        # Mock metrics data - in a real implementation, this would come from training logs
+        metrics = {
+            "loss": [2.5, 2.1, 1.8, 1.6, 1.4],
+            "learning_rate": [0.0002, 0.00018, 0.00016, 0.00014, 0.00012],
+            "epoch": [1, 2, 3, 4, 5],
+            "step": [100, 200, 300, 400, 500],
+            "validation_accuracy": [0.65, 0.72, 0.78, 0.82, 0.85],
+            "training_time": "2h 30m",
+            "gpu_utilization": 85,
+            "memory_usage": "12.5GB"
+        }
+        
+        return create_response(
+            status="success",
+            data={
+                "job_id": job_id,
+                "metrics": metrics,
+                "last_updated": datetime.now().isoformat()
+            },
+            message=f"Training metrics for job {job_id}"
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

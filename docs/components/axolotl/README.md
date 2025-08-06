@@ -108,7 +108,7 @@ Each sample follows the conversation format:
 
 Training progress is logged to:
 - Console output
-- Weights & Biases (if configured)
+- Weights & Biases (removed)
 - Local log files in `models/` directory
 
 ## Troubleshooting

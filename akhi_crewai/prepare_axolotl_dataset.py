@@ -486,9 +486,9 @@ class AxolotlDatasetPreparer:
             'saves_per_epoch': 1,
             'evals_per_epoch': 4,
             
-            # Weights & Biases
-            'wandb_project': f"akhi-islamic-ai-{datetime.now().strftime('%Y%m%d')}",
-            'wandb_name': f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            # Weights & Biases (removed)
+        # 'wandb_project': f"akhi-islamic-ai-{datetime.now().strftime('%Y%m%d')}",
+        # 'wandb_name': f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
             
             # Special tokens
             'special_tokens': {
@@ -753,7 +753,7 @@ Each sample follows the conversation format:
 
 Training progress is logged to:
 - Console output
-- Weights & Biases (if configured)
+- Weights & Biases (removed)
 - Local log files in `models/` directory
 
 ## Troubleshooting

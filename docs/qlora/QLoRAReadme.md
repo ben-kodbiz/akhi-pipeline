@@ -56,7 +56,7 @@ YouTube Search → Download → Transcription → Content Analysis → QLoRA For
 # Required environment variables
 export OPENAI_API_KEY="your_openai_key_here"
 export HUGGINGFACE_TOKEN="your_hf_token_here"
-export WANDB_API_KEY="your_wandb_key_here"  # Optional for experiment tracking
+# export WANDB_API_KEY="your_wandb_key_here"  # Wandb dependency removed
 ```
 
 ## Installation
@@ -98,7 +98,7 @@ cp .env.example .env
 # Add required environment variables
 echo "OPENAI_API_KEY=your_openai_key_here" >> .env
 echo "HUGGINGFACE_TOKEN=your_hf_token_here" >> .env
-echo "WANDB_API_KEY=your_wandb_key_here" >> .env
+# echo "WANDB_API_KEY=your_wandb_key_here" >> .env  # Wandb dependency removed
 
 # Optional configuration
 echo "AKHI_LOG_LEVEL=INFO" >> .env
@@ -641,7 +641,7 @@ python cli_logger.py \
 # Required API keys
 export OPENAI_API_KEY="your_openai_key_here"
 export HUGGINGFACE_TOKEN="your_hf_token_here"
-export WANDB_API_KEY="your_wandb_key_here"
+# export WANDB_API_KEY="your_wandb_key_here"  # Wandb dependency removed
 
 # Optional configuration
 export AKHI_LOG_LEVEL="INFO"              # DEBUG, INFO, WARNING, ERROR
@@ -998,7 +998,7 @@ echo "Starting QLoRA training with Axolotl..."
 
 # Set environment variables
 export CUDA_VISIBLE_DEVICES=0
-export WANDB_PROJECT="akhi-islamic-model"
+# export WANDB_PROJECT="akhi-islamic-model"  # Wandb dependency removed
 
 # Check GPU memory
 nvidia-smi
@@ -1033,10 +1033,10 @@ tail -f ./axolotl_data/logs/training.log
 #### 2. Weights & Biases Integration
 
 ```bash
-# Login to W&B (if not already done)
-wandb login
+# Login to W&B (if not already done) - Wandb dependency removed
+# wandb login
 
-# Training will automatically log to W&B
+# Training will automatically log to W&B - Wandb dependency removed
 # View at: https://wandb.ai/your-username/akhi-islamic-model
 ```
 

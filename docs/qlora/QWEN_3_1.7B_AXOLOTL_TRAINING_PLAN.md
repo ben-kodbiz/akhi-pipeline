@@ -81,11 +81,11 @@ hub_strategy: every_save
 
 # Logging
 logging_steps: 10
-wandb_project: qwen-islamic-training
-wandb_entity:
-wandb_watch:
-wandb_name: qwen-1.7b-islamic-qlora
-wandb_log_model:
+# wandb_project: qwen-islamic-training
+# wandb_entity:
+# wandb_watch:
+# wandb_name: qwen-1.7b-islamic-qlora
+# wandb_log_model:
 
 # Special Tokens
 special_tokens:

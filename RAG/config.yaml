@@ -1,0 +1,60 @@
+# RAG Pipeline Configuration
+model:
+  name: "microsoft/DialoGPT-medium"
+  path: "microsoft/DialoGPT-medium"
+  max_seq_length: 1024
+  load_in_4bit: false
+  max_new_tokens: 200
+
+embeddings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  device: "cuda"  # or "cpu"
+
+vector_store:
+  persist_directory: "./rag_index"
+  collection_name: "islamic_knowledge"
+
+retrieval:
+  top_k: 5
+  chunk_size: 200
+  chunk_overlap: 20
+  max_context_tokens: 1500
+  use_reranker: false
+  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  reranker_top_n: 3
+
+# Data sources - supports multiple file formats
+data:
+  sources:
+    - "dua.pdf"                  # Islamic dua guide (PDF)
+    - "ispsy.pdf"                # Psychology research document (PDF)
+    - "data/quran.txt"           # Plain text
+    - "data/hadith.pdf"          # PDF documents
+    - "data/tafsir.docx"         # Word documents
+    - "data/islamic_qa.json"     # JSON data
+    - "data/articles.html"       # HTML files
+    - "data/books/"              # Directory (all supported files)
+  chunk_size: 512
+  chunk_overlap: 50
+  target_samples: 2000
+  min_samples: 1000
+  max_samples: 3000
+
+evaluation:
+  metrics:
+    - "context_relevance"
+    - "answer_faithfulness"
+    - "answer_correctness"
+  target_accuracy: 0.85
+  validation_size: 200
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+  title: "Islamic RAG API"
+  description: "RAG pipeline for Islamic question answering"
+
+context_management:
+  max_conversation_turns: 15
+  summarize_after_turns: 10
+  enable_conversation_memory: true

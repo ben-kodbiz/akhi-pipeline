@@ -1,0 +1,19 @@
+{
+  "islamic_qa": [
+    {
+      "question": "What is the meaning of Islam?",
+      "answer": "Islam means 'submission to Allah' and 'peace'. It comes from the Arabic root s-l-m, which relates to peace, purity, submission, and obedience.",
+      "category": "basics"
+    },
+    {
+      "question": "Who is Prophet Muhammad?",
+      "answer": "Prophet Muhammad (peace be upon him) is the final messenger of Allah, born in Mecca in 570 CE. He received the Quran through the angel Gabriel (Jibril) and is considered the seal of the prophets.",
+      "category": "prophet"
+    },
+    {
+      "question": "What are the 99 names of Allah?",
+      "answer": "The 99 names of Allah (Asma ul-Husna) are the beautiful names and attributes of Allah mentioned in the Quran and Hadith, such as Ar-Rahman (The Compassionate), Ar-Rahim (The Merciful), Al-Malik (The King), etc.",
+      "category": "theology"
+    }
+  ]
+}

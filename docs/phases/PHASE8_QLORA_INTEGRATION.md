@@ -412,7 +412,7 @@ tqdm>=4.65.0
 
 ```txt
 # Monitoring and Logging
-wandb>=0.15.0
+# wandb>=0.15.0  # Removed wandb dependency
 tensorboard>=2.13.0
 
 # Advanced Features

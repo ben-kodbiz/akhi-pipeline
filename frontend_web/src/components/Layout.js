@@ -6,6 +6,7 @@ const navigation = [
   { name: 'Dashboard', href: '/' },
   { name: 'Transcripts', href: '/transcripts' },
   { name: 'JSON Preview', href: '/json' },
+  { name: 'QLoRA Training', href: '/qlora' },
 ];
 
 function classNames(...classes) {

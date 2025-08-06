@@ -11,6 +11,36 @@ node_modules/
 *.pack
 *.jar
 *.node
+*.pdf
+*.docx
+*.doc
+*.ppt
+*.pptx
+*.xls
+*.xlsx
+
+# RAG uploads and data
+RAG/uploads/
+RAG/rag_index/
+RAG/checkpoints/
+RAG/training_data/
+RAG/*.pdf
+RAG/*.docx
+RAG/*.doc
+
+# Axolotl training outputs
+akhi_crewai/axolotl_ready/
+akhi_crewai/outputs/
+akhi_crewai/models/
+akhi_crewai/*.log
+
+# Training data and models
+*.bin
+*.safetensors
+*.h5
+*.ckpt
+*.pt
+*.pth
 
 # Audio and video files
 *.mp3
