@@ -210,11 +210,7 @@ model_deployment:
       enable_auth: true
       create_docs: true
       
-    docker:
-      enabled: true
-      create_dockerfile: true
-      create_compose: true
-      base_image: "python:3.9-slim"
+    # Docker configuration removed - focusing on functionality and testing
       
     huggingface:
       enabled: false

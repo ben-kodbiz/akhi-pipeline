@@ -1,0 +1,236 @@
+# End-to-End Pipeline Test Configuration
+# Configuration for testing complete workflow from YouTube search to QLoRA training
+
+# Test Environment Settings
+test_environment:
+  name: "akhi_pipeline_e2e_test"
+  version: "1.0.0"
+  description: "End-to-end testing of Akhi CrewAI pipeline"
+  output_base_dir: "test_results"
+  log_level: "INFO"
+  cleanup_on_success: false
+  cleanup_on_failure: false
+
+# YouTube Search Configuration
+youtube_search:
+  api_key_env: "YOUTUBE_API_KEY"
+  search_keywords:
+    - "trauma healing islam mufti menk"
+    - "dealing with trauma nouman ali khan"
+    - "islamic counseling trauma mufti menk"
+    - "mental health islam nouman khan"
+    - "overcoming difficulties islam mufti menk"
+    - "patience in hardship nouman khan"
+  
+  target_channels:
+    - "Mufti Menk"
+    - "Nouman Ali Khan"
+    - "Bayyinah Institute"
+    - "Islamic Online University"
+  
+  filters:
+    max_duration_minutes: 20
+    min_duration_minutes: 5
+    max_videos_per_search: 3
+    language: "en"
+    upload_date: "year"  # last year
+  
+  quality_checks:
+    min_view_count: 1000
+    check_audio_quality: true
+    exclude_shorts: true
+
+# Download Configuration
+download:
+  audio_format: "mp3"
+  audio_quality: "192"
+  max_file_size_mb: 100
+  download_timeout: 300  # 5 minutes
+  retry_attempts: 3
+  output_template: "%(uploader)s - %(title)s.%(ext)s"
+
+# Transcription Configuration
+transcription:
+  model: "whisper-base"
+  language: "en"
+  task: "transcribe"
+  chunk_length_s: 30
+  batch_size: 16
+  return_timestamps: true
+  output_format: "json"
+  
+  quality_checks:
+    min_confidence: 0.7
+    check_islamic_terms: true
+    filter_noise: true
+
+# QLoRA Formatting Configuration
+qlora_formatting:
+  instruction_templates:
+    - "What does Islam teach about {topic}?"
+    - "How should a Muslim approach {topic}?"
+    - "What guidance does the Quran provide for {topic}?"
+    - "How can Islamic principles help with {topic}?"
+  
+  topics:
+    - "trauma healing"
+    - "mental health"
+    - "dealing with hardship"
+    - "finding peace"
+    - "spiritual wellness"
+    - "emotional healing"
+  
+  formatting:
+    max_sequence_length: 1024
+    min_response_length: 50
+    max_response_length: 500
+    include_context: true
+    add_islamic_context: true
+  
+  validation:
+    check_islamic_content: true
+    filter_inappropriate: true
+    ensure_balanced_dataset: true
+
+# QLoRA Training Configuration
+qlora_training:
+  base_model: "qwen/Qwen1.5-1.8B"
+  
+  # Training hyperparameters (reduced for testing)
+  training_args:
+    num_train_epochs: 1
+    per_device_train_batch_size: 2
+    per_device_eval_batch_size: 2
+    gradient_accumulation_steps: 4
+    learning_rate: 2e-4
+    weight_decay: 0.01
+    warmup_ratio: 0.1
+    lr_scheduler_type: "cosine"
+    max_grad_norm: 1.0
+    
+  # LoRA configuration
+  lora_config:
+    r: 16
+    lora_alpha: 32
+    target_modules: ["q_proj", "v_proj", "k_proj", "o_proj"]
+    lora_dropout: 0.1
+    bias: "none"
+    task_type: "CAUSAL_LM"
+  
+  # Quantization settings
+  quantization:
+    load_in_4bit: true
+    bnb_4bit_compute_dtype: "float16"
+    bnb_4bit_use_double_quant: true
+    bnb_4bit_quant_type: "nf4"
+  
+  # Training monitoring
+  monitoring:
+    eval_steps: 50
+    save_steps: 100
+    logging_steps: 10
+    eval_strategy: "steps"
+    save_strategy: "steps"
+    load_best_model_at_end: true
+    metric_for_best_model: "eval_loss"
+    greater_is_better: false
+  
+  # Output settings
+  output:
+    output_dir: "models/qlora_adapter"
+    save_total_limit: 2
+    push_to_hub: false
+    hub_model_id: null
+
+# Model Validation Configuration
+model_validation:
+  test_cases:
+    trauma_healing:
+      - "How does Islam help with trauma healing?"
+      - "What does the Quran say about overcoming trauma?"
+      - "How can prayer help someone dealing with trauma?"
+    
+    mental_health:
+      - "What is the Islamic perspective on mental health?"
+      - "How should Muslims approach therapy and counseling?"
+      - "What does Islam say about depression and anxiety?"
+    
+    spiritual_guidance:
+      - "How can someone find peace during difficult times?"
+      - "What Islamic practices help with emotional healing?"
+      - "How does faith help in recovery from trauma?"
+  
+  validation_criteria:
+    islamic_accuracy: true
+    response_coherence: true
+    appropriate_tone: true
+    factual_correctness: true
+    cultural_sensitivity: true
+  
+  scoring:
+    min_islamic_content_score: 0.8
+    min_coherence_score: 0.7
+    min_appropriateness_score: 0.9
+    min_overall_score: 0.75
+  
+  output:
+    generate_report: true
+    save_responses: true
+    include_metrics: true
+
+# Pipeline Integration Settings
+pipeline_integration:
+  crew_config_file: "akhi_crewai/crew_config.yaml"
+  enable_monitoring: true
+  checkpoint_frequency: "phase"  # save after each phase
+  
+  error_handling:
+    continue_on_warning: true
+    stop_on_error: true
+    max_retries: 3
+    retry_delay: 5  # seconds
+  
+  resource_limits:
+    max_memory_gb: 16
+    max_disk_gb: 50
+    max_runtime_hours: 4
+
+# Test Reporting
+reporting:
+  formats: ["json", "html", "txt"]
+  include_logs: true
+  include_metrics: true
+  include_samples: true
+  
+  email_notification:
+    enabled: false
+    smtp_server: null
+    recipients: []
+  
+  slack_notification:
+    enabled: false
+    webhook_url: null
+    channel: "#akhi-pipeline-tests"
+
+# Environment Requirements
+requirements:
+  python_version: ">=3.8"
+  cuda_available: false  # Set to true if GPU training desired
+  min_ram_gb: 8
+  min_disk_gb: 20
+  
+  required_packages:
+    - "torch>=1.13.0"
+    - "transformers>=4.30.0"
+    - "datasets>=2.12.0"
+    - "peft>=0.4.0"
+    - "bitsandbytes>=0.39.0"
+    - "accelerate>=0.20.0"
+    - "whisper>=1.0.0"
+    - "yt-dlp>=2023.6.0"
+    - "crewai>=0.1.0"
+  
+  optional_packages:
+    - "wandb"  # for experiment tracking
+    - "tensorboard"  # for training visualization
+    - "gradio"  # for model demo interface

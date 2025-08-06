@@ -50,7 +50,7 @@ Phase 8 successfully integrates QLoRA (Quantized Low-Rank Adaptation) fine-tunin
   - Local deployment
   - HuggingFace Hub integration
   - API server setup
-  - Docker containerization
+  - ~~Docker containerization~~ (Removed - focusing on functionality and testing)
 
 ### 3. Configuration Management
 
@@ -422,7 +422,7 @@ accelerate>=0.23.0
 # Deployment
 fastapi>=0.100.0
 uvicorn>=0.23.0
-docker>=6.1.0
+# docker>=6.1.0  # Removed - focusing on functionality and testing
 ```
 
 ## 📖 Documentation

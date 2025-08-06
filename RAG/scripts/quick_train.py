@@ -95,6 +95,8 @@ def check_status():
     
     print(f"📁 Found {len(axolotl_dirs)} training directory(ies):")
     
+    training_completed = False
+    
     for axolotl_dir in axolotl_dirs:
         print(f"\n📂 Directory: {axolotl_dir}")
         
@@ -120,28 +122,43 @@ def check_status():
                 print(f"   🎯 Found {len(checkpoints)} training checkpoint(s)")
                 latest_checkpoint = max(checkpoints, key=lambda x: x.stat().st_mtime)
                 print(f"   📈 Latest checkpoint: {latest_checkpoint.name}")
+                
+                # Check for completion indicators
+                final_model_dir = output_dir / "final_model"
+                if final_model_dir.exists():
+                    print("   🎉 Training completed! Final model found.")
+                    training_completed = True
             else:
                 print("   ⏳ No checkpoints found (training may be starting)")
         else:
             print("   ⏳ No output directory (training not started)")
         
-        # Check for logs
+        # Check for logs and completion indicators
         log_files = list(axolotl_dir.glob("*.log"))
         if log_files:
             print(f"   📝 Found {len(log_files)} log file(s)")
             latest_log = max(log_files, key=lambda x: x.stat().st_mtime)
             print(f"   📄 Latest log: {latest_log.name}")
             
-            # Show last few lines of latest log
+            # Show last few lines of latest log and check for completion
             try:
                 with open(latest_log, 'r') as f:
                     lines = f.readlines()
                     if lines:
                         print("   📋 Recent log entries:")
-                        for line in lines[-3:]:
+                        for line in lines[-5:]:
                             print(f"      {line.strip()}")
+                            # Check for training completion indicators
+                            if any(indicator in line.lower() for indicator in 
+                                   ['training complete', 'training finished', 'model saved', 
+                                    'training done', 'final model', 'training successful']):
+                                training_completed = True
             except Exception as e:
                 print(f"   ⚠️  Could not read log: {e}")
+    
+    if training_completed:
+        print("\n🎉 TRAINING COMPLETED SUCCESSFULLY!")
+        print("   Your model is ready for use.")
     
     return True
 

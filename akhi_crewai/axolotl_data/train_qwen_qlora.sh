@@ -165,7 +165,7 @@ echo "=" * 50
 # Set environment variables for optimization
 export CUDA_VISIBLE_DEVICES=0
 export TOKENIZERS_PARALLELISM=false
-export WANDB_DISABLED=true  # Disable wandb for now
+# export WANDB_DISABLED=true  # Wandb dependency removed
 
 # Training command
 TRAIN_CMD="axolotl train $CONFIG_FILE"

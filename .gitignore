@@ -20,7 +20,7 @@ node_modules/
 *.xlsx
 
 # RAG uploads and data
-RAG/uploads/
+RAG/docs/
 RAG/rag_index/
 RAG/checkpoints/
 RAG/training_data/
@@ -132,6 +132,25 @@ outputs/
 *.csv
 *.tsv
 *.parquet
+
+# Test results and temporary directories
+rag_finetuning_test_*/
+test_results_*/
+tool_test_results_*/
+validation_test_*/
+comprehensive_validation_*/
+
+# Pipeline and training outputs
+pipeline/output/
+pipeline/db/
+akhi_lora.json
+*.faiss
+*.index
+
+# Large JSON files
+*_results.json
+*_report.json
+final_*.json
 
 # Editor directories and files
 .idea/

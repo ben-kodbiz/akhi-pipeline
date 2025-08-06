@@ -1,429 +1,272 @@
-# Islamic RAG Pipeline
+# RAG to Axolotl Training System
 
-A Retrieval-Augmented Generation (RAG) pipeline that combines a QLoRA-fine-tuned Qwen3-1.7B model with Islamic knowledge sources to provide accurate, contextually relevant answers about Islamic topics.
+Complete CLI-based system for converting RAG documents into fine-tuned AI models using Axolotl.
 
-## Overview
+## 📚 Documentation
 
-This project implements a complete RAG system that:
-- Uses a QLoRA-fine-tuned Qwen3-1.7B model for text generation
-- Integrates Islamic knowledge sources (Quran, Hadith, Islamic Q&A)
-- Employs Chroma vector database with sentence-transformers embeddings
-- Provides FastAPI-based REST API for easy integration
-- Includes comprehensive evaluation using RAGAS metrics
+### 🚀 Quick Start
+- **[Quick Reference Card](QUICK_REFERENCE.md)** - Essential commands and troubleshooting
+- **[Complete CLI Guide](RAG_TO_AXOLOTL_CLI_GUIDE.md)** - Detailed step-by-step instructions
 
-## Features
+### 🔧 Tools
+- **[Troubleshooting Script](scripts/troubleshoot.py)** - Automated diagnostic tool
+- **[Training Scripts](scripts/)** - Conversion and automation tools
 
-- **QLoRA Integration**: Efficient 4-bit quantized model loading
-- **Vector Search**: Semantic search using Chroma and sentence-transformers
-- **Multi-Format Support**: Process HTML, PDF, DOCX, TXT, and JSON files
-- **Reranking**: Optional reranking for improved retrieval quality
-- **Conversation Memory**: Session-based conversation tracking
-- **Evaluation**: RAGAS-based evaluation with multiple metrics
-- **API Server**: FastAPI-based REST API with async support
-- **Caching**: Response caching for improved performance
-
-## Project Structure
-
-```
-RAG/
-├── README.md                 # This file
-├── requirements.txt          # Python dependencies
-├── config.yaml              # Configuration settings
-├── scripts/
-│   ├── setup.py             # Setup and installation script
-│   ├── data_preparation.py  # Data collection and preprocessing
-│   ├── rag_pipeline.py      # Main RAG pipeline implementation
-│   ├── api_server.py        # FastAPI server
-│   └── evaluation.py        # RAGAS evaluation
-├── data/                    # Islamic knowledge sources
-│   ├── quran/
-│   ├── hadith/
-│   └── qa/
-├── checkpoints/             # QLoRA model files
-├── rag_index/              # Chroma vector database
-├── evaluation_results/     # Evaluation reports
-└── logs/                   # Application logs
-```
-
-## Prerequisites
-
-- Python 3.8+
-- CUDA-compatible GPU (recommended, 4GB+ VRAM)
-- QLoRA-fine-tuned Qwen3-1.7B model
-- 8GB+ RAM
-- 10GB+ disk space
-
-## Quick Start
-
-### 1. Setup Environment
+## ⚡ Quick Start (5 Minutes)
 
 ```bash
-# Navigate to RAG directory
+# 1. Check system readiness
+python scripts/troubleshoot.py
+
+# 2. Start RAG server
+python scripts/api_server.py &
+
+# 3. Upload documents (web interface)
+# Open: http://localhost:8000/upload_interface.html
+
+# 4. Run complete training pipeline
+python scripts/quick_train.py train
+
+# 5. Monitor progress
+tail -f ../akhi_crewai/axolotl_ready/training.log
+```
+
+## 📋 Step-by-Step Process
+
+### Phase 1: Document Upload
+```bash
 cd RAG
-
-# Run setup script (installs dependencies and prepares data)
-python scripts/setup.py
+python scripts/api_server.py                    # Start upload server
+python scripts/upload_cli.py --file doc.pdf     # Upload documents
 ```
 
-### 2. Configure the Pipeline
+### Phase 2: Data Conversion
+```bash
+python scripts/quick_train.py prepare           # Convert to training format
+```
 
-Edit `config.yaml` to match your setup:
+### Phase 3: Model Preparation
+```bash
+cd ../akhi_crewai
+python prepare_axolotl_dataset.py \             # Prepare Axolotl dataset
+  --input ../RAG/training_data \
+  --output axolotl_ready \
+  --model microsoft/DialoGPT-medium
+```
 
+### Phase 4: Training
+```bash
+cd axolotl_ready
+./train_model.sh                                 # Start training
+```
+
+## 🛠️ Available Scripts
+
+### Core Scripts
+- **`scripts/api_server.py`** - Document upload server
+- **`scripts/upload_cli.py`** - CLI document upload
+- **`scripts/quick_train.py`** - Simple training interface
+- **`scripts/auto_train_from_rag.py`** - Advanced automation
+- **`scripts/rag_to_axolotl_bridge.py`** - Data conversion
+- **`scripts/troubleshoot.py`** - Diagnostic tool
+
+### Usage Examples
+```bash
+# Quick operations
+python scripts/quick_train.py prepare           # Prepare dataset
+python scripts/quick_train.py train             # Full training
+python scripts/quick_train.py status            # Check status
+
+# Advanced operations
+python scripts/auto_train_from_rag.py --prepare-only
+python scripts/auto_train_from_rag.py --train --model microsoft/DialoGPT-large
+
+# Troubleshooting
+python scripts/troubleshoot.py                  # Full diagnostic
+python scripts/troubleshoot.py --check gpu      # Check specific component
+python scripts/troubleshoot.py --fix            # Attempt automatic fixes
+```
+
+## 🔍 System Requirements
+
+### Hardware
+- **GPU**: NVIDIA GPU with 8GB+ VRAM (16GB+ recommended)
+- **RAM**: 16GB+ system memory
+- **Storage**: 20GB+ free disk space
+- **CPU**: Multi-core processor (8+ cores recommended)
+
+### Software
+- Python 3.8+
+- CUDA 11.8+
+- NVIDIA drivers
+- Git
+
+### Quick System Check
+```bash
+python scripts/troubleshoot.py --check system
+```
+
+## 🎯 Training Configurations
+
+### Small GPU (8GB VRAM)
 ```yaml
-model:
-  path: "../checkpoints/qwen3-1.7b-qlora"  # Path to your QLoRA model
-  device: "cuda"  # or "cpu"
-  load_in_4bit: true
-
-embeddings:
-  model_name: "sentence-transformers/all-MiniLM-L6-v2"
-  device: "cuda"
-
-vector_store:
-  persist_directory: "./rag_index"
-  collection_name: "islamic_knowledge"
-
-data:
-  sources:
-    - "./data/quran"
-    - "./data/hadith"
-    - "./data/qa"
+# axolotl_config.yml
+model_type: AutoModelForCausalLM
+model_name: microsoft/DialoGPT-medium
+load_in_4bit: true
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 8
+max_steps: 500
 ```
 
-### 3. Prepare Data
-
-```bash
-# Generate sample Islamic knowledge data
-python scripts/data_preparation.py
-```
-
-### 4. Test the Pipeline
-
-```bash
-# Test RAG pipeline functionality
-python scripts/rag_pipeline.py
-```
-
-### 5. Start API Server
-
-```bash
-# Start FastAPI server
-python scripts/api_server.py
-
-# Server will be available at http://localhost:8000
-# API documentation at http://localhost:8000/docs
-```
-
-### 6. Evaluate Performance
-
-```bash
-# Run RAGAS evaluation
-python scripts/evaluation.py
-```
-
-## Supported File Formats
-
-The RAG pipeline supports multiple document formats:
-
-| Format | Extension | Requirements | Description |
-|--------|-----------|--------------|-------------|
-| **Text** | `.txt` | Built-in | Plain text files |
-| **HTML** | `.html`, `.htm` | `beautifulsoup4` | Web pages and HTML documents |
-| **PDF** | `.pdf` | `PyPDF2` | PDF documents |
-| **Word** | `.docx`, `.doc` | `python-docx` | Microsoft Word documents |
-| **JSON** | `.json` | Built-in | Structured JSON data |
-
-### Installing Document Processing Dependencies
-
-```bash
-# Install all document processing dependencies
-pip install beautifulsoup4 PyPDF2 python-docx unstructured
-
-# Or install selectively based on your needs
-pip install beautifulsoup4  # For HTML files
-pip install PyPDF2          # For PDF files
-pip install python-docx     # For Word documents
-```
-
-### Document Loading Examples
-
-```python
-from scripts.document_loader import EnhancedDocumentLoader
-from pathlib import Path
-
-# Initialize document loader
-loader = EnhancedDocumentLoader(chunk_size=512, chunk_overlap=50)
-
-# Load a single document
-documents = loader.load_document(Path("quran.pdf"))
-print(f"Loaded {len(documents)} chunks")
-
-# Load all documents from a directory
-documents = loader.load_documents_from_directory(Path("islamic_texts/"))
-
-# Load specific files
-file_paths = ["quran.pdf", "hadith.docx", "tafsir.html"]
-documents = loader.load_documents_from_paths(file_paths)
-
-# Check supported formats
-formats = loader.get_supported_formats()
-for fmt, available in formats.items():
-    status = "✓" if available else "✗"
-    print(f".{fmt}: {status}")
-```
-
-## Usage Examples
-
-### Python API
-
-```python
-from scripts.rag_pipeline import IslamicRAGPipeline
-
-# Initialize pipeline
-rag = IslamicRAGPipeline("config.yaml")
-rag.setup()
-
-# Query the system
-response = rag.query(
-    "What are the five pillars of Islam?",
-    session_id="user123"
-)
-
-print(f"Answer: {response['answer']}")
-print(f"Sources: {response['sources']}")
-```
-
-### REST API
-
-```bash
-# Query endpoint
-curl -X POST "http://localhost:8000/query" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "question": "What are the five pillars of Islam?",
-    "session_id": "user123",
-    "max_tokens": 512
-  }'
-
-# Conversation endpoint
-curl -X POST "http://localhost:8000/conversation" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "message": "Tell me about prayer in Islam",
-    "session_id": "user123"
-  }'
-```
-
-### Response Format
-
-```json
-{
-  "answer": "The five pillars of Islam are...",
-  "sources": [
-    {
-      "content": "Relevant text from source",
-      "metadata": {
-        "source": "quran",
-        "chapter": "2",
-        "verse": "177"
-      },
-      "score": 0.85
-    }
-  ],
-  "session_id": "user123",
-  "response_time": 1.23,
-  "model_used": "qwen3-1.7b-qlora"
-}
-```
-
-## Configuration
-
-### Model Settings
-
+### Medium GPU (16GB VRAM)
 ```yaml
-model:
-  path: "path/to/your/qlora/model"  # QLoRA model path
-  device: "cuda"                    # Device: cuda/cpu
-  load_in_4bit: true               # Enable 4-bit quantization
-  max_new_tokens: 512              # Maximum generation length
-  temperature: 0.7                 # Generation temperature
-  do_sample: true                  # Enable sampling
-  top_p: 0.9                      # Top-p sampling
-  repetition_penalty: 1.1          # Repetition penalty
+# axolotl_config.yml
+model_type: AutoModelForCausalLM
+model_name: microsoft/DialoGPT-large
+load_in_4bit: true
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 4
+max_steps: 1000
 ```
 
-### Retrieval Settings
-
+### Large GPU (24GB+ VRAM)
 ```yaml
-retrieval:
-  top_k: 5                        # Number of documents to retrieve
-  score_threshold: 0.7            # Minimum similarity score
-  chunk_size: 512                 # Document chunk size
-  chunk_overlap: 50               # Overlap between chunks
-  enable_reranking: true          # Enable reranking
-  reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+# axolotl_config.yml
+model_type: AutoModelForCausalLM
+model_name: microsoft/DialoGPT-large
+load_in_8bit: true
+per_device_train_batch_size: 4
+gradient_accumulation_steps: 2
+max_steps: 1500
 ```
 
-### API Settings
-
-```yaml
-api:
-  host: "0.0.0.0"                 # Server host
-  port: 8000                      # Server port
-  max_concurrent_requests: 10     # Max concurrent requests
-  request_timeout: 30             # Request timeout (seconds)
-  enable_cors: true               # Enable CORS
-  log_level: "INFO"               # Logging level
-```
-
-## Evaluation
-
-The system includes comprehensive evaluation using RAGAS metrics:
-
-- **Context Relevancy**: How relevant retrieved contexts are
-- **Answer Relevancy**: How relevant the answer is to the question
-- **Faithfulness**: How faithful the answer is to the context
-- **Context Recall**: How well the retrieval covers relevant information
-- **Context Precision**: How precise the retrieved contexts are
-
-### Running Evaluation
-
-```bash
-# Run full evaluation
-python scripts/evaluation.py
-
-# Run with custom dataset
-python scripts/evaluation.py --dataset path/to/your/dataset.json
-
-# Generate detailed report
-python scripts/evaluation.py --detailed-report
-```
-
-### Evaluation Results
-
-Results are saved in `evaluation_results/` with:
-- Overall metrics scores
-- Per-question analysis
-- Performance benchmarks
-- Recommendations for improvement
-
-## Optimization Tips
-
-### Performance
-
-1. **GPU Usage**: Ensure CUDA is available for both model and embeddings
-2. **Batch Processing**: Process multiple queries in batches
-3. **Caching**: Enable response caching for repeated queries
-4. **Model Quantization**: Use 4-bit quantization for memory efficiency
-
-### Quality
-
-1. **Chunk Size**: Experiment with different chunk sizes (256-1024)
-2. **Reranking**: Enable reranking for better retrieval quality
-3. **Prompt Engineering**: Customize prompts for your use case
-4. **Data Quality**: Ensure high-quality, relevant training data
-
-### Scalability
-
-1. **Vector Database**: Consider using persistent Chroma storage
-2. **Load Balancing**: Use multiple API instances for high traffic
-3. **Async Processing**: Leverage FastAPI's async capabilities
-4. **Resource Monitoring**: Monitor GPU/CPU usage and memory
-
-## Troubleshooting
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **CUDA Out of Memory**
-   - Reduce batch size
-   - Enable 4-bit quantization
-   - Use CPU for embeddings
-
-2. **Model Loading Errors**
-   - Check model path in config.yaml
-   - Ensure model files are complete
-   - Verify model format compatibility
-
-3. **Slow Performance**
-   - Enable GPU acceleration
-   - Reduce chunk size
-   - Enable caching
-
-4. **Poor Answer Quality**
-   - Improve data quality
-   - Enable reranking
-   - Adjust retrieval parameters
-   - Fine-tune prompt templates
-
-### Debug Mode
-
+#### 1. CUDA Out of Memory
 ```bash
-# Enable debug logging
-export LOG_LEVEL=DEBUG
-python scripts/rag_pipeline.py
-
-# Test individual components
-python -c "from scripts.rag_pipeline import *; test_embeddings()"
-python -c "from scripts.rag_pipeline import *; test_model_loading()"
+# Solution: Reduce batch size
+python scripts/troubleshoot.py --fix memory
+# Or manually edit axolotl_config.yml:
+# per_device_train_batch_size: 1
+# gradient_accumulation_steps: 16
 ```
 
-## Development
-
-### Adding New Data Sources
-
-1. Create data processing function in `data_preparation.py`
-2. Add source path to `config.yaml`
-3. Update document processor in `rag_pipeline.py`
-4. Test with new data
-
-### Customizing Prompts
-
-Edit the prompt template in `rag_pipeline.py`:
-
-```python
-CHATML_TEMPLATE = """
-<|im_start|>system
-You are a knowledgeable Islamic scholar assistant...
-<|im_end|>
-<|im_start|>user
-Context: {context}
-
-Question: {question}
-<|im_end|>
-<|im_start|>assistant
-"""
+#### 2. Tokenization Errors
+```bash
+# Check data format
+python scripts/troubleshoot.py --check data
+# Fix automatically
+python scripts/troubleshoot.py --fix tokenization
 ```
 
-### Adding New Evaluation Metrics
+#### 3. Model Loading Issues
+```bash
+# Check model availability
+python scripts/troubleshoot.py --check model
+# Download missing models
+python scripts/troubleshoot.py --fix model
+```
 
-1. Implement metric function in `evaluation.py`
-2. Add to evaluation pipeline
-3. Update reporting
+#### 4. Training Stuck/Slow
+```bash
+# Check training status
+python scripts/quick_train.py status
+# Monitor GPU usage
+watch -n 1 nvidia-smi
+```
 
-## Contributing
+### Emergency Commands
+```bash
+# Stop all training
+pkill -f train_model.sh
+pkill -f python.*axolotl
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests
-5. Submit a pull request
+# Clean up corrupted data
+rm -rf ../akhi_crewai/axolotl_ready/models/checkpoint-*
+rm -rf training_data/*.json
 
-## License
+# Reset and restart
+python scripts/troubleshoot.py --reset
+python scripts/quick_train.py train
+```
 
-This project is open source and available under the MIT License.
+## 📁 Directory Structure
 
-## Support
+```
+RAG/
+├── README.md                           # This guide
+├── RAG_TO_AXOLOTL_CLI_GUIDE.md        # Detailed CLI guide
+├── QUICK_REFERENCE.md                  # Quick reference card
+├── scripts/
+│   ├── troubleshoot.py                 # Diagnostic tool
+│   ├── quick_train.py                  # Simple training interface
+│   ├── auto_train_from_rag.py         # Advanced automation
+│   ├── rag_to_axolotl_bridge.py       # Data conversion
+│   ├── api_server.py                   # Upload server
+│   └── upload_cli.py                   # CLI upload tool
+├── training_data/                      # Converted training data
+├── uploaded_documents/                 # Raw uploaded documents
+└── logs/                              # System logs
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Review the configuration
-3. Check logs in `logs/` directory
-4. Create an issue with detailed information
+../akhi_crewai/
+├── prepare_axolotl_dataset.py         # Dataset preparation
+└── axolotl_ready/                     # Training environment
+    ├── axolotl_config.yml             # Training configuration
+    ├── train_model.sh                 # Training script
+    ├── models/                        # Model checkpoints
+    └── training.log                   # Training logs
+```
 
-## Acknowledgments
+## ✅ Success Indicators
 
-- Qwen team for the base model
-- Hugging Face for transformers and datasets
-- LangChain for RAG framework
-- Chroma for vector database
-- RAGAS for evaluation metrics
+### Training Progress
+- **Loss decreasing**: From ~6.0 to ~2.8-3.0
+- **Checkpoints created**: `checkpoint-100`, `checkpoint-200`, etc.
+- **GPU utilization**: 80-95% during training
+- **No error messages**: In training logs
+
+### Validation Commands
+```bash
+# Check training progress
+tail -f ../akhi_crewai/axolotl_ready/training.log | grep "train_loss"
+
+# Verify checkpoints
+ls -la ../akhi_crewai/axolotl_ready/models/
+
+# Monitor GPU usage
+watch -n 1 nvidia-smi
+
+# Check system resources
+python scripts/troubleshoot.py --check resources
+```
+
+## 📖 Related Documentation
+
+- **[Axolotl Documentation](https://github.com/OpenAccess-AI-Collective/axolotl)**
+- **[QLoRA Paper](https://arxiv.org/abs/2305.14314)**
+- **[Transformers Library](https://huggingface.co/docs/transformers)**
+- **[PEFT Documentation](https://huggingface.co/docs/peft)**
+
+## 💡 Pro Tips
+
+1. **Start Small**: Begin with DialoGPT-medium before trying larger models
+2. **Monitor Resources**: Keep an eye on GPU memory and temperature
+3. **Save Checkpoints**: Training can take hours, checkpoints are crucial
+4. **Use Troubleshoot Script**: Run diagnostics before and during training
+5. **Check Logs**: Training logs contain valuable debugging information
+
+## 🆘 Need Help?
+
+1. **Run Diagnostics**: `python scripts/troubleshoot.py`
+2. **Check Quick Reference**: [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
+3. **Review Logs**: `tail -f logs/system.log`
+4. **System Status**: `python scripts/quick_train.py status`
+
+---
+
+**Last Updated**: December 2024  
+**Version**: 2.0  
+**Compatibility**: Axolotl 0.4+, Transformers 4.36+, PEFT 0.7+

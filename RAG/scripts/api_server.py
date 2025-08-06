@@ -25,6 +25,9 @@ sys.path.append(str(Path(__file__).parent))
 
 from rag_pipeline import IslamicRAGPipeline
 from document_loader import EnhancedDocumentLoader
+from auto_train_from_rag import AutoTrainingPipeline
+import subprocess
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -58,6 +61,13 @@ class HealthResponse(BaseModel):
     model_loaded: bool = Field(..., description="Whether the model is loaded")
     vector_store_ready: bool = Field(..., description="Whether vector store is ready")
     total_documents: int = Field(default=0, description="Total documents in vector store")
+    total_chunks: int = Field(default=0, description="Total chunks in vector store")
+
+class ChunkStatsResponse(BaseModel):
+    """Chunk statistics response"""
+    total_chunks: int = Field(..., description="Total number of chunks")
+    chunks_by_document: Dict[str, int] = Field(default={}, description="Chunks count per document")
+    last_updated: str = Field(..., description="Last update timestamp")
 
 class ConversationRequest(BaseModel):
     """Request model for conversation-based queries"""
@@ -73,6 +83,8 @@ class UploadResponse(BaseModel):
     file_size: int = Field(..., description="File size in bytes")
     file_type: str = Field(..., description="File extension")
     chunks_processed: Optional[int] = Field(None, description="Number of chunks processed")
+    chunks_before_upload: Optional[int] = Field(None, description="Total chunks before upload")
+    chunks_after_upload: Optional[int] = Field(None, description="Total chunks after upload")
     message: str = Field(..., description="Status message")
 
 class FileInfo(BaseModel):
@@ -98,6 +110,20 @@ class DeleteResponse(BaseModel):
     filename: str = Field(..., description="Deleted filename")
     message: str = Field(..., description="Status message")
 
+class TrainingRequest(BaseModel):
+    """Request model for training operations"""
+    action: str = Field(..., description="Training action: prepare, train, or status")
+    config_overrides: Optional[Dict[str, Any]] = Field(None, description="Configuration overrides")
+
+class TrainingResponse(BaseModel):
+    """Response model for training operations"""
+    success: bool = Field(..., description="Operation success status")
+    action: str = Field(..., description="Performed action")
+    message: str = Field(..., description="Status message")
+    status: Optional[str] = Field(None, description="Current training status")
+    progress: Optional[Dict[str, Any]] = Field(None, description="Training progress information")
+    logs: Optional[List[str]] = Field(None, description="Recent log entries")
+
 # Global RAG pipeline instance
 rag_pipeline: Optional[IslamicRAGPipeline] = None
 conversation_memory: Dict[str, List[Dict[str, str]]] = {}
@@ -106,7 +132,7 @@ document_loader: Optional[EnhancedDocumentLoader] = None
 class FileUploadManager:
     """Manages file uploads and RAG integration"""
     
-    def __init__(self, upload_dir: str = "uploads", config_path: str = "config.yaml"):
+    def __init__(self, upload_dir: str = "docs", config_path: str = "config.yaml"):
         self.upload_dir = Path(upload_dir)
         self.config_path = Path(config_path)
         self.upload_dir.mkdir(exist_ok=True)
@@ -293,7 +319,7 @@ class FileUploadManager:
                         str(file_path),
                         str(file_path.relative_to(Path.cwd())),
                         filename,
-                        f"uploads/{filename}"
+                        f"docs/{filename}"
                     ]
                     
                     original_count = len(config['data']['sources'])
@@ -324,6 +350,17 @@ class FileUploadManager:
 
 # Initialize upload manager
 upload_manager = FileUploadManager()
+
+def get_current_chunk_count() -> int:
+    """Helper function to get current chunk count from vector store"""
+    global rag_pipeline
+    try:
+        if rag_pipeline and rag_pipeline.vector_store:
+            collection = rag_pipeline.vector_store._collection
+            return collection.count()
+    except Exception as e:
+        logger.error(f"Failed to get chunk count: {str(e)}")
+    return 0
 
 # Create FastAPI app
 app = FastAPI(
@@ -392,25 +429,37 @@ async def health_check():
             status="unhealthy",
             model_loaded=False,
             vector_store_ready=False,
-            total_documents=0
+            total_documents=0,
+            total_chunks=0
         )
     
     try:
-        # Check if vector store has documents
+        # Check if vector store has documents and chunks
         total_docs = 0
+        total_chunks = 0
         if rag_pipeline.vector_store:
             try:
                 # Try to get collection info
                 collection = rag_pipeline.vector_store._collection
-                total_docs = collection.count()
+                total_chunks = collection.count()
+                # Count unique documents
+                results = collection.get(include=["metadatas"])
+                if results and results["metadatas"]:
+                    unique_sources = set()
+                    for metadata in results["metadatas"]:
+                        if "source" in metadata:
+                            unique_sources.add(metadata["source"])
+                    total_docs = len(unique_sources)
             except:
                 total_docs = 0
+                total_chunks = 0
         
         return HealthResponse(
             status="healthy",
             model_loaded=rag_pipeline.model is not None,
             vector_store_ready=rag_pipeline.vector_store is not None,
-            total_documents=total_docs
+            total_documents=total_docs,
+            total_chunks=total_chunks
         )
         
     except Exception as e:
@@ -419,7 +468,48 @@ async def health_check():
             status="unhealthy",
             model_loaded=False,
             vector_store_ready=False,
-            total_documents=0
+            total_documents=0,
+            total_chunks=0
+        )
+
+@app.get("/chunks/stats", response_model=ChunkStatsResponse)
+async def get_chunk_statistics():
+    """Get detailed chunk statistics"""
+    global rag_pipeline
+    
+    if rag_pipeline is None or rag_pipeline.vector_store is None:
+        return ChunkStatsResponse(
+            total_chunks=0,
+            chunks_by_document={},
+            last_updated=datetime.now().isoformat()
+        )
+    
+    try:
+        collection = rag_pipeline.vector_store._collection
+        total_chunks = collection.count()
+        
+        # Get all metadata to count chunks per document
+        results = collection.get(include=["metadatas"])
+        chunks_by_document = {}
+        
+        if results and results["metadatas"]:
+            for metadata in results["metadatas"]:
+                if "source" in metadata:
+                    source = metadata["source"]
+                    chunks_by_document[source] = chunks_by_document.get(source, 0) + 1
+        
+        return ChunkStatsResponse(
+            total_chunks=total_chunks,
+            chunks_by_document=chunks_by_document,
+            last_updated=datetime.now().isoformat()
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to get chunk statistics: {str(e)}")
+        return ChunkStatsResponse(
+            total_chunks=0,
+            chunks_by_document={},
+            last_updated=datetime.now().isoformat()
         )
 
 # File Upload Endpoints
@@ -462,13 +552,17 @@ async def upload_file(
             )
         
         chunks_processed = None
+        chunks_before = get_current_chunk_count()
+        chunks_after = chunks_before
         
         # Process document if requested
         if process_immediately:
             process_result = upload_manager.process_document(Path(save_result['file_path']))
             if process_result['success']:
                 chunks_processed = process_result['chunks_count']
+                chunks_after = get_current_chunk_count()
                 logger.info(f"Processed {save_result['filename']}: {process_result['chunks_count']} chunks")
+                logger.info(f"Chunk count changed from {chunks_before} to {chunks_after}")
             else:
                 logger.warning(f"Failed to process {save_result['filename']}: {process_result['error']}")
         
@@ -485,6 +579,8 @@ async def upload_file(
             file_size=save_result['file_size'],
             file_type=save_result['file_type'],
             chunks_processed=chunks_processed,
+            chunks_before_upload=chunks_before,
+            chunks_after_upload=chunks_after,
             message=f"File '{save_result['filename']}' uploaded successfully"
         )
         
@@ -498,6 +594,9 @@ async def upload_file(
                 file_path="",
                 file_size=0,
                 file_type="",
+                chunks_processed=None,
+                chunks_before_upload=None,
+                chunks_after_upload=None,
                 message=f"Upload failed: {str(e)}"
             ).dict()
         )
@@ -811,6 +910,171 @@ async def rebuild_index(background_tasks: BackgroundTasks):
     
     background_tasks.add_task(rebuild_task)
     return {"message": "Index rebuild started in background"}
+
+@app.post("/training/prepare", response_model=TrainingResponse)
+async def prepare_training_dataset(background_tasks: BackgroundTasks):
+    """Prepare dataset for Axolotl training"""
+    try:
+        logger.info("Starting dataset preparation for Axolotl training")
+        
+        # Run dataset preparation using subprocess
+        script_dir = Path(__file__).parent
+        quick_train_script = script_dir / "quick_train.py"
+        
+        def run_prepare():
+            subprocess.run(
+                [sys.executable, str(quick_train_script), "prepare"],
+                cwd=script_dir
+            )
+        
+        background_tasks.add_task(run_prepare)
+        
+        return TrainingResponse(
+            success=True,
+            action="prepare",
+            message="Dataset preparation started in background",
+            status="preparing"
+        )
+    except Exception as e:
+        logger.error(f"Error starting dataset preparation: {e}")
+        return TrainingResponse(
+            success=False,
+            action="prepare",
+            message=f"Failed to start dataset preparation: {str(e)}",
+            status="error"
+        )
+
+@app.post("/training/start", response_model=TrainingResponse)
+async def start_axolotl_training(background_tasks: BackgroundTasks):
+    """Start Axolotl training pipeline"""
+    try:
+        logger.info("Starting Axolotl training pipeline")
+        
+        # Run training using subprocess
+        script_dir = Path(__file__).parent
+        quick_train_script = script_dir / "quick_train.py"
+        
+        def run_training():
+            subprocess.run(
+                [sys.executable, str(quick_train_script), "train"],
+                cwd=script_dir
+            )
+        
+        background_tasks.add_task(run_training)
+        
+        return TrainingResponse(
+            success=True,
+            action="train",
+            message="Training pipeline started in background",
+            status="training"
+        )
+    except Exception as e:
+        logger.error(f"Error starting training: {e}")
+        return TrainingResponse(
+            success=False,
+            action="train",
+            message=f"Failed to start training: {str(e)}",
+            status="error"
+        )
+
+@app.get("/training/status", response_model=TrainingResponse)
+async def get_training_status():
+    """Get current training status"""
+    try:
+        logger.info("Checking training status")
+        
+        # Run quick_train status check
+        script_dir = Path(__file__).parent
+        quick_train_script = script_dir / "quick_train.py"
+        
+        result = subprocess.run(
+            [sys.executable, str(quick_train_script), "status"],
+            capture_output=True,
+            text=True,
+            cwd=script_dir
+        )
+        
+        # Parse output to detect training completion
+        stdout = result.stdout
+        training_completed = False
+        training_status = "checking"
+        message = "Status retrieved successfully"
+        
+        if result.returncode == 0:
+            # Check for completion indicators in output
+            if "🎉 TRAINING COMPLETED SUCCESSFULLY!" in stdout:
+                training_completed = True
+                training_status = "completed"
+                message = "Training has completed successfully!"
+                logger.info("Training completion detected!")
+            elif "Training script found" in stdout and "Found" in stdout and "checkpoint" in stdout:
+                training_status = "training"
+                message = "Training is in progress"
+            elif "No training directories found" in stdout:
+                training_status = "not_started"
+                message = "Training has not been started"
+            else:
+                training_status = "unknown"
+                message = "Training status unclear"
+        else:
+            training_status = "error"
+            message = "Status check failed"
+        
+        status_info = {
+            "exit_code": result.returncode,
+            "stdout": stdout,
+            "stderr": result.stderr,
+            "training_completed": training_completed
+        }
+        
+        return TrainingResponse(
+            success=result.returncode == 0,
+            action="status",
+            message=message,
+            status=training_status,
+            progress=status_info
+        )
+    except Exception as e:
+        logger.error(f"Error checking training status: {e}")
+        return TrainingResponse(
+            success=False,
+            action="status",
+            message=f"Failed to check status: {str(e)}",
+            status="error"
+        )
+
+@app.post("/training/full-pipeline", response_model=TrainingResponse)
+async def run_full_training_pipeline(background_tasks: BackgroundTasks):
+    """Run complete RAG to Axolotl training pipeline"""
+    try:
+        logger.info("Starting full RAG to Axolotl training pipeline")
+        
+        # Initialize auto trainer
+        script_dir = Path(__file__).parent
+        base_dir = script_dir.parent.parent  # akhi_data_builder
+        
+        auto_trainer = AutoTrainingPipeline(base_dir=str(base_dir))
+        
+        # Run full pipeline in background
+        def run_full_pipeline():
+            auto_trainer.run_pipeline(start_training=True)
+        
+        background_tasks.add_task(run_full_pipeline)
+        
+        return TrainingResponse(
+            success=True,
+            action="full-pipeline",
+            message="Full training pipeline started in background",
+            status="running"
+        )
+    except Exception as e:
+        logger.error(f"Error starting full pipeline: {e}")
+        return TrainingResponse(
+            success=False,
+            action="full-pipeline",
+            message=f"Failed to start full pipeline: {str(e)}",
+            status="error"
+        )
 
 def main():
     """Run the FastAPI server"""

@@ -151,12 +151,12 @@ fsdp: # Optional FSDP config
 # Resume training
 resume_from_checkpoint: # Path to checkpoint if resuming
 
-# Wandb logging (optional)
-wandb_project: akhi-qlora-training
-wandb_entity: # Your wandb entity
-wandb_watch: false
-wandb_name: akhi-islamic-assistant
-wandb_log_model: false
+# Wandb logging (removed)
+# wandb_project: akhi-qlora-training
+# wandb_entity: # Your wandb entity
+# wandb_watch: false
+# wandb_name: akhi-islamic-assistant
+# wandb_log_model: false
 
 # HuggingFace Hub (optional)
 hub_model_id: # Your HF model ID for pushing
@@ -274,7 +274,7 @@ output:
 deployment:
   create_inference_script: true
   create_api_server: true
-  create_docker_config: true
+  # Docker configuration removed - focusing on functionality and testing
   create_model_card: true
   prepare_huggingface_upload: true
 

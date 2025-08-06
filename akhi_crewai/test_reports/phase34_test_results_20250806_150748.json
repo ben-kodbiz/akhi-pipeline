@@ -1,0 +1,125 @@
+{
+  "timestamp": "2025-08-06T15:07:48.759749",
+  "phase": "3-4 Agent Coordination System",
+  "total_tests": 10,
+  "passed_tests": 6,
+  "failed_tests": 4,
+  "success_rate": 60.0,
+  "test_categories": {
+    "agent_tests": {
+      "total": 4,
+      "passed": 3,
+      "success_rate": 75.0
+    },
+    "crew_tests": {
+      "total": 4,
+      "passed": 2,
+      "success_rate": 50.0
+    },
+    "integration_tests": {
+      "total": 1,
+      "passed": 1,
+      "success_rate": 100
+    },
+    "performance_tests": {
+      "total": 1,
+      "passed": 0,
+      "success_rate": 0
+    }
+  },
+  "detailed_results": {
+    "agent_tests": {
+      "video_researcher": {
+        "status": "failed",
+        "error": ""
+      },
+      "transcriber": {
+        "status": "passed",
+        "details": {
+          "role": "Audio-to-Text Transcriber",
+          "tools": [
+            "YouTubeDownloaderTool",
+            "TranscriptionTool"
+          ],
+          "tool_count": 2
+        }
+      },
+      "vector_indexer": {
+        "status": "passed",
+        "details": {
+          "role": "Embedding Engineer",
+          "tools": [
+            "TextChunkerTool",
+            "EmbedderTool",
+            "FAISSStorageTool",
+            "FAISSQueryTool"
+          ],
+          "tool_count": 4
+        }
+      },
+      "content_qa": {
+        "status": "passed",
+        "details": {
+          "role": "Semantic Retriever and Islamic Knowledge Assistant",
+          "tools": [
+            "SummarizerTool",
+            "AnswerGeneratorTool",
+            "FAISSQueryTool"
+          ],
+          "tool_count": 3
+        }
+      }
+    },
+    "crew_tests": {
+      "pipeline_creation": {
+        "status": "failed",
+        "error": "Missing agent: video_researcher"
+      },
+      "task_definitions": {
+        "status": "passed",
+        "details": {
+          "video_search": "created",
+          "transcription": "created",
+          "indexing": "created",
+          "qa": "created",
+          "orchestrator": "functional"
+        }
+      }
+    },
+    "workflow_tests": {
+      "orchestration": {
+        "status": "passed",
+        "details": {
+          "task_count": 4,
+          "dependency_count": 3,
+          "tasks": [
+            "search_task",
+            "transcribe_task",
+            "index_task",
+            "qa_task"
+          ]
+        }
+      },
+      "retry_handling": {
+        "status": "failed",
+        "error": "'WorkflowOrchestrator' object has no attribute 'retry_counts'"
+      }
+    },
+    "integration_tests": {
+      "end_to_end": {
+        "status": "passed",
+        "details": {
+          "crew_agents": 4,
+          "workflow_tasks": 1,
+          "configuration": "valid"
+        }
+      }
+    },
+    "performance_tests": {
+      "metrics": {
+        "status": "failed",
+        "error": ""
+      }
+    }
+  }
+}

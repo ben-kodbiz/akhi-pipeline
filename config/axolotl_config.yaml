@@ -1,0 +1,48 @@
+adapter: qlora
+base_model: microsoft/DialoGPT-medium
+bf16: true
+datasets:
+- conversation:
+    field: conversations
+    field_assistant: assistant
+    field_human: human
+  path: rag_finetuning_test_20250806_163210/training_output/qlora_training_data.json
+  type: json
+early_stopping_patience: 3
+eval_steps: 250
+flash_attention: true
+fp16: false
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+group_by_length: false
+learning_rate: 0.0002
+load_best_model_at_end: true
+local_rank: -1
+logging_steps: 1
+lora_alpha: 32
+lora_dropout: 0.05
+lora_fan_in_fan_out: false
+lora_model_dir: rag_finetuning_test_20250806_163210/training_output/qlora_model
+lora_r: 16
+lora_target_linear: true
+lr_scheduler: cosine
+micro_batch_size: 2
+model_type: AutoModelForCausalLM
+num_epochs: 1
+optimizer: adamw_bnb_8bit
+output_dir: rag_finetuning_test_20250806_163210/training_output/qlora_model
+pad_to_sequence_len: true
+resume_from_checkpoint: null
+sample_packing: true
+save_steps: 100
+save_total_limit: 3
+sequence_len: 512
+special_tokens:
+  bos_token: <s>
+  eos_token: </s>
+  pad_token: '[PAD]'
+  unk_token: <unk>
+tf32: false
+tokenizer_type: AutoTokenizer
+train_on_inputs: false
+xformers_attention: true

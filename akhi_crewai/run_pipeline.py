@@ -694,8 +694,8 @@ class QLoRAPipelineOrchestrator:
                     'gate_proj', 'down_proj', 'up_proj'
                 ],
                 
-                'wandb_project': f"akhi-islamic-ai-{datetime.now().strftime('%Y%m%d')}",
-                'wandb_name': f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+                # 'wandb_project': f"akhi-islamic-ai-{datetime.now().strftime('%Y%m%d')}",
+            # 'wandb_name': f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
                 
                 'gradient_accumulation_steps': self.config.get('gradient_accumulation_steps', 4),
                 'micro_batch_size': self.config.get('batch_size', 4),

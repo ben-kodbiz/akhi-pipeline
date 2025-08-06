@@ -7,6 +7,8 @@ Integrates retrieval-augmented generation with Islamic knowledge base.
 import os
 import yaml
 import logging
+import hashlib
+import json
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 
@@ -18,7 +20,7 @@ from transformers import (
     pipeline
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.docstore.document import Document
+from langchain_core.documents import Document
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.chains import RetrievalQA
@@ -48,6 +50,11 @@ class IslamicRAGPipeline:
         self.tokenizer = None
         self.embeddings = None
         self.vector_store = None
+        
+        # Document cache management
+        self.cache_dir = Path(self.config['vector_store']['persist_directory']).parent / "document_cache"
+        self.cache_file = self.cache_dir / "processed_files.json"
+        self.cache_dir.mkdir(exist_ok=True)
         self.retriever = None
         self.rag_chain = None
         
@@ -55,6 +62,50 @@ class IslamicRAGPipeline:
         """Load configuration from YAML file"""
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
+    
+    def _get_file_hash(self, file_path: Path) -> str:
+        """Get MD5 hash of file for cache validation"""
+        hash_md5 = hashlib.md5()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+    
+    def _load_cache(self) -> Dict[str, Dict[str, Any]]:
+        """Load processed files cache"""
+        if self.cache_file.exists():
+            try:
+                with open(self.cache_file, 'r') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.warning(f"Failed to load cache: {e}")
+        return {}
+    
+    def _save_cache(self, cache: Dict[str, Dict[str, Any]]) -> None:
+        """Save document cache to file"""
+        try:
+            # Ensure cache directory exists
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            with open(self.cache_file, 'w') as f:
+                json.dump(cache, f, indent=2)
+            logger.info(f"Document cache saved to {self.cache_file}")
+        except Exception as e:
+            logger.error(f"Failed to save cache: {e}")
+    
+    def _should_process_file(self, file_path: Path, cache: Dict[str, Dict[str, Any]]) -> bool:
+        """Check if file needs processing based on cache"""
+        file_key = str(file_path.absolute())
+        
+        if file_key not in cache:
+            return True
+        
+        try:
+            current_hash = self._get_file_hash(file_path)
+            cached_hash = cache[file_key].get('hash')
+            return current_hash != cached_hash
+        except Exception as e:
+            logger.warning(f"Error checking file hash for {file_path}: {e}")
+            return True
     
     def setup_model(self) -> None:
         """Load QLoRA-fine-tuned Qwen3-1.7B model"""
@@ -104,8 +155,11 @@ class IslamicRAGPipeline:
         logger.info(f"Embeddings initialized with {model_name}")
     
     def load_and_process_documents(self, data_dir: str = "data") -> List[Document]:
-        """Load and process Islamic knowledge documents using enhanced loader"""
-        logger.info("Loading and processing documents...")
+        """Load and process Islamic knowledge documents using enhanced loader with caching"""
+        logger.info("Loading and processing documents with caching...")
+        
+        # Load cache
+        cache = self._load_cache()
         
         # Initialize enhanced document loader
         loader = EnhancedDocumentLoader(
@@ -113,11 +167,87 @@ class IslamicRAGPipeline:
             chunk_overlap=self.config['retrieval']['chunk_overlap']
         )
         
-        # Load documents from configured sources
-        documents = loader.load_documents_from_paths(self.config['data']['sources'])
+        # Check which files need processing
+        sources = self.config['data']['sources']
+        files_to_process = []
+        cached_documents = []
         
-        logger.info(f"Processed {len(documents)} document chunks")
-        return documents
+        for source in sources:
+            source_path = Path(source)
+            if source_path.is_file():
+                if self._should_process_file(source_path, cache):
+                    files_to_process.append(str(source_path))
+                    logger.info(f"File needs processing: {source_path}")
+                else:
+                    logger.info(f"Using cached version: {source_path}")
+                    # Load cached documents if available
+                    file_key = str(source_path.absolute())
+                    if 'documents' in cache[file_key]:
+                        for doc_data in cache[file_key]['documents']:
+                            doc = Document(
+                                page_content=doc_data['page_content'],
+                                metadata=doc_data['metadata']
+                            )
+                            cached_documents.append(doc)
+            elif source_path.is_dir():
+                # For directories, check each file
+                for file_path in source_path.rglob('*'):
+                    if file_path.is_file() and file_path.suffix.lower() in ['.pdf', '.txt', '.docx', '.html', '.json']:
+                        if self._should_process_file(file_path, cache):
+                            files_to_process.append(str(file_path))
+                            logger.info(f"File needs processing: {file_path}")
+                        else:
+                            logger.info(f"Using cached version: {file_path}")
+                            file_key = str(file_path.absolute())
+                            if file_key in cache and 'documents' in cache[file_key]:
+                                for doc_data in cache[file_key]['documents']:
+                                    doc = Document(
+                                        page_content=doc_data['page_content'],
+                                        metadata=doc_data['metadata']
+                                    )
+                                    cached_documents.append(doc)
+        
+        # Process only new/modified files
+        new_documents = []
+        if files_to_process:
+            logger.info(f"Processing {len(files_to_process)} new/modified files...")
+            new_documents = loader.load_documents_from_paths(files_to_process)
+            
+            # Update cache with new documents
+            for source in files_to_process:
+                try:
+                    source_path = Path(source)
+                    file_key = str(source_path.absolute())
+                    
+                    # Get documents for this file
+                    file_documents = [doc for doc in new_documents if doc.metadata.get('file_path') == str(source_path)]
+                    
+                    cache[file_key] = {
+                        'hash': self._get_file_hash(source_path),
+                        'processed_at': str(Path().cwd()),
+                        'documents': [
+                            {
+                                'page_content': doc.page_content,
+                                'metadata': doc.metadata
+                            } for doc in file_documents
+                        ]
+                    }
+                    
+                    # Save cache incrementally after each file
+                    self._save_cache(cache)
+                    logger.info(f"Cached documents for {source_path}")
+                    
+                except Exception as e:
+                    logger.error(f"Failed to cache documents for {source}: {e}")
+                    continue
+        else:
+            logger.info("No new files to process - using cached documents")
+        
+        # Combine cached and new documents
+        all_documents = cached_documents + new_documents
+        
+        logger.info(f"Total documents: {len(all_documents)} ({len(cached_documents)} cached, {len(new_documents)} newly processed)")
+        return all_documents
     
     def build_vector_store(self, documents: List[Document]) -> None:
         """Build Chroma vector store from documents"""

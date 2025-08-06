@@ -1244,32 +1244,11 @@ deployer._run(
 "
 ```
 
-#### 2. Docker Deployment
-
-```dockerfile
-# Dockerfile for production deployment
-FROM nvidia/cuda:11.8-devel-ubuntu20.04
-
-# Install Python and dependencies
-RUN apt-get update && apt-get install -y python3 python3-pip
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
-
-# Copy application
-COPY . /app
-WORKDIR /app
-
-# Expose port
-EXPOSE 8080
-
-# Start API server
-CMD ["python3", "api_server.py"]
-```
+#### 2. ~~Docker Deployment~~ (Removed - focusing on functionality and testing)
 
 ```bash
-# Build and run Docker container
-docker build -t akhi-islamic-model .
-docker run -p 8080:8080 --gpus all akhi-islamic-model
+# Direct deployment without Docker
+python api_server.py
 ```
 
 #### 3. Cloud Deployment (AWS/GCP/Azure)
@@ -1290,11 +1269,11 @@ spec:
       labels:
         app: akhi-islamic-model
     spec:
-      containers:
-      - name: model-server
-        image: akhi-islamic-model:latest
-        ports:
-        - containerPort: 8080
+      # containers:  # Docker removed - focusing on functionality and testing
+      # - name: model-server
+      #   image: akhi-islamic-model:latest
+      #   ports:
+      #   - containerPort: 8080
         resources:
           requests:
             nvidia.com/gpu: 1

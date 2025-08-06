@@ -381,11 +381,11 @@ class QLoRAProductionPipeline:
             "lora_target_linear": True,
             "lora_fan_in_fan_out": False,
             
-            "wandb_project": "akhi-qlora-islamic-ai",
-            "wandb_entity": "",
-            "wandb_watch": "",
-            "wandb_name": f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
-            "wandb_log_model": "",
+            # "wandb_project": "akhi-qlora-islamic-ai",
+            # "wandb_entity": "",
+            # "wandb_watch": "",
+            # "wandb_name": f"islamic-model-{datetime.now().strftime('%Y%m%d-%H%M%S')}",
+            # "wandb_log_model": "",
             
             "gradient_accumulation_steps": self.config.gradient_accumulation_steps,
             "micro_batch_size": self.config.batch_size_training,

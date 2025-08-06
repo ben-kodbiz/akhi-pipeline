@@ -132,7 +132,7 @@ def main():
         save_total_limit=2,
         remove_unused_columns=False,
         push_to_hub=False,
-        report_to=None,  # Disable wandb
+        report_to=None,  # Wandb dependency removed
         load_best_model_at_end=False,
     )
     
