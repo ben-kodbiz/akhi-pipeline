@@ -23,6 +23,10 @@ from crewai import Agent, LLM
 sys.path.append(os.path.join(os.path.dirname(__file__), '../tools'))
 from tools.youtube_search import YouTubeSearchTool
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 
 class VideoResearcherAgent:
     """
@@ -48,43 +52,51 @@ class VideoResearcherAgent:
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Load configuration from YAML file.
+        Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (ignored, using unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
+            config_loader = get_config()
+            return {
+                'llm': config_loader.get_llm_config(),
+                'agents': config_loader.get_crewai_config().get('agents', {}),
+                'youtube': config_loader.get_youtube_config()
+            }
+        except Exception as e:
+            print(f"Warning: Could not load config: {e}")
             # Fallback configuration
             return {
-                'local_llm': {
+                'llm': {
                     'model_name': 'lm_studio/qwen-3-14b',
-                    'base_url': 'http://192.168.0.74:1234/v1',
+                    'base_url': 'http://localhost:1234/v1',
                     'api_key': None,
                     'temperature': 0.7,
                     'max_tokens': 2048
                 },
                 'agents': {
                     'video_researcher': {
-                        'role': 'YouTube Research Assistant',
-                        'goal': 'Find relevant Islamic YouTube videos based on topics and keywords',
-                        'backstory': 'You are an expert Islamic content researcher with deep knowledge of Islamic scholars, topics, and YouTube content. You excel at finding high-quality educational videos.',
+                        'role': 'Islamic Content Video Researcher',
+                        'goal': 'Find high-quality Islamic educational videos on YouTube that match specific topics and criteria',
+                        'backstory': 'You are an expert researcher specializing in Islamic educational content. You have deep knowledge of Islamic scholars, topics, and can identify authentic and beneficial educational videos. You understand the importance of finding content from reputable sources and avoiding controversial or inappropriate material. Your research helps build a comprehensive knowledge base of Islamic teachings.',
                         'max_iter': 5,
                         'max_execution_time': 300,
                         'verbose': True,
                         'allow_delegation': False
+                    }
+                },
+                'youtube': {
+                    'api_key': None,
+                    'max_results': 50,
+                    'default_region': 'US',
+                    'quality_filters': {
+                        'min_duration': 60,
+                        'max_duration': 3600,
+                        'min_views': 1000
                     }
                 }
             }

@@ -26,6 +26,10 @@ from embedder import EmbedderTool
 from faiss_store import FAISSStorageTool
 from faiss_query import FAISSQueryTool
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 
 class VectorIndexerAgent:
     """
@@ -53,39 +57,39 @@ class VectorIndexerAgent:
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Load configuration from YAML file.
+        Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (ignored, using unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
+            config_loader = get_config()
+            return {
+                'llm': config_loader.get_llm_config(),
+                'agents': config_loader.get_crewai_config().get('agents', {}),
+                'text_processing': config_loader.get_section('text_processing', {}),
+                'vector_store': config_loader.get_vector_store_config()
+            }
+        except Exception as e:
+            print(f"Warning: Could not load config: {e}")
             # Fallback configuration
             return {
-                'local_llm': {
-                    'model_name': 'lm_studio/qwen-3-14b',
-                    'base_url': 'http://192.168.0.74:1234/v1',
+                'llm': {
+                    'provider': 'lm_studio',
+                    'base_url': 'http://localhost:1234/v1',
                     'api_key': None,
+                    'model_name': 'lm_studio/qwen-3-14b',
                     'temperature': 0.7,
                     'max_tokens': 2048
                 },
                 'agents': {
                     'vector_indexer': {
-                        'role': 'Embedding Engineer',
-                        'goal': 'Process transcripts into searchable vector embeddings for semantic retrieval',
-                        'backstory': 'You are a vector database specialist with expertise in semantic search and information retrieval. You create efficient and accurate search indices.',
+                        'role': 'Vector Database Indexer',
+                        'goal': 'Process and index text content for efficient retrieval',
+                        'backstory': 'Specialized in text processing and vector database management',
                         'max_iter': 3,
                         'max_execution_time': 300,
                         'verbose': True,
@@ -97,22 +101,24 @@ class VectorIndexerAgent:
                         'chunk_size': 1000,
                         'chunk_overlap': 200,
                         'separator': '\n\n',
-                        'preserve_sentences': True
+                        'preserve_sentences': True,
+                        'min_chunk_size': 100
                     },
                     'embedding': {
-                        'model_name': 'all-MiniLM-L6-v2',
+                        'model_name': 'sentence-transformers/all-MiniLM-L6-v2',
                         'device': 'auto',
                         'batch_size': 32,
                         'normalize_embeddings': True
                     }
                 },
-                'faiss': {
+                'vector_store': {
                     'index_type': 'IndexFlatIP',
                     'dimension': 384,
                     'nlist': 100,
                     'nprobe': 10,
                     'index_dir': 'data/embeddings',
-                    'metadata_file': 'data/embeddings/metadata.jsonl'
+                    'metadata_file': 'data/embeddings/metadata.jsonl',
+                    'embedding_model': 'sentence-transformers/all-MiniLM-L6-v2'
                 }
             }
     

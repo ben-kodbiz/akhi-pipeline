@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import hashlib
 import re
+from utils.config_loader import get_config
 
 try:
     import faiss
@@ -86,8 +87,12 @@ class IslamicRAGChecker:
     def initialize_embedding_model(self):
         """Initialize sentence transformer model"""
         try:
-            # Use a model that works well with Arabic/Islamic text
-            model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+            # Get embedding model from config
+            try:
+                config = get_config()
+                model_name = config.get('embeddings', {}).get('model_name', 'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+            except Exception:
+                model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
             logger.info(f"Loading embedding model: {model_name}")
             self.embedding_model = SentenceTransformer(model_name)
             logger.info("Embedding model loaded successfully")

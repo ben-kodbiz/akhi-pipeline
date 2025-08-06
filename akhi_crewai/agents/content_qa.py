@@ -25,6 +25,10 @@ from summarizer import SummarizerTool
 from answer_generator import AnswerGeneratorTool
 from faiss_query import FAISSQueryTool
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 
 class ContentQAAgent:
     """
@@ -52,31 +56,32 @@ class ContentQAAgent:
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Load configuration from YAML file.
+        Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (ignored, using unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
+            config_loader = get_config()
+            return {
+                'llm': config_loader.get_llm_config(),
+                'agents': config_loader.get_crewai_config().get('agents', {}),
+                'retrieval': config_loader.get_section('retrieval', {}),
+                'generation': config_loader.get_section('generation', {}),
+                'faiss': config_loader.get_section('faiss', {})
+            }
+        except Exception as e:
+            print(f"Warning: Could not load unified config: {e}")
             # Fallback configuration
             return {
-                'local_llm': {
-                    'model_name': 'lm_studio/qwen-3-14b',
-                    'base_url': 'http://192.168.0.74:1234/v1',
+                'llm': {
+                    'provider': 'lm_studio',
+                    'base_url': 'http://localhost:1234/v1',
                     'api_key': None,
+                    'model_name': 'local-model',
                     'temperature': 0.7,
                     'max_tokens': 2048
                 },
@@ -91,6 +96,16 @@ class ContentQAAgent:
                         'allow_delegation': False
                     }
                 },
+                'retrieval': {
+                    'top_k': 5,
+                    'similarity_threshold': 0.7,
+                    'rerank': True
+                },
+                'generation': {
+                    'max_length': 512,
+                    'temperature': 0.7,
+                    'context_window': 4096
+                },
                 'faiss': {
                     'index_type': 'IndexFlatIP',
                     'dimension': 384,
@@ -98,6 +113,10 @@ class ContentQAAgent:
                     'nprobe': 10,
                     'index_dir': 'data/embeddings',
                     'metadata_file': 'data/embeddings/metadata.jsonl'
+                },
+                'vector_store': {
+                    'index_dir': 'data/embeddings',
+                    'embedding_model': 'sentence-transformers/all-MiniLM-L6-v2'
                 }
             }
     
@@ -189,11 +208,17 @@ class ContentQAAgent:
         try:
             # Step 1: Retrieve relevant context
             query_tool = self.tools[2]  # FAISSQueryTool
+            
+            # Get configuration values
+            retrieval_config = self.config.get('retrieval', {})
+            vector_config = self.config.get('vector_store', {})
+            index_dir = vector_config.get('index_dir', 'data/embeddings')
+            
             search_result = query_tool._run(
                 query=question,
                 index_name=index_name,
                 k=max_chunks,
-                index_dir="data/embeddings"
+                index_dir=index_dir
             )
             
             if not search_result.success:

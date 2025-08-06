@@ -24,6 +24,7 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Set
+from utils.config_loader import get_config
 
 # Add current directory to path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -663,7 +664,7 @@ class QLoRAPipelineOrchestrator:
         try:
             # Generate Axolotl config
             axolotl_config = {
-                'base_model': self.config.get('base_model', 'microsoft/DialoGPT-medium'),
+                'base_model': self.config.get('base_model', self.config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium')),
                 'model_type': 'AutoModelForCausalLM',
                 'tokenizer_type': 'AutoTokenizer',
                 
@@ -868,7 +869,7 @@ Examples:
     parser.add_argument('--quality-threshold', type=float, default=0.7, help='Content quality threshold')
     
     # Model options
-    parser.add_argument('--base-model', type=str, default='microsoft/DialoGPT-medium', help='Base model for fine-tuning')
+    parser.add_argument('--base-model', type=str, default='', help='Base model for fine-tuning')
     parser.add_argument('--whisper-model', type=str, default='base', help='Whisper model size')
     parser.add_argument('--max-length', type=int, default=2048, help='Maximum sequence length')
     
@@ -894,12 +895,20 @@ Examples:
         else:
             config = {}
         
+        # Try to load from unified config first
+        try:
+            unified_config = get_config()
+            if unified_config and 'pipeline' in unified_config:
+                config.update(unified_config['pipeline'])
+        except Exception as e:
+            logger.warning(f"Failed to load from unified config: {e}")
+        
         # Override config with command line arguments
         config.update({
             'output_dir': args.output,
             'max_videos': args.max_videos,
             'quality_threshold': args.quality_threshold,
-            'base_model': args.base_model,
+            'base_model': args.base_model if args.base_model else config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium'),
             'whisper_model': args.whisper_model,
             'max_sequence_length': args.max_length,
             'num_epochs': args.epochs,

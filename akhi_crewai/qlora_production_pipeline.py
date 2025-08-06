@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, asdict
+from utils.config_loader import get_config
 
 # Import Akhi CrewAI tools
 from tools.youtube_downloader import YouTubeDownloaderTool
@@ -52,7 +53,7 @@ class PipelineConfig:
     quality_threshold: float = 0.8
     
     # QLoRA configuration
-    model_name: str = "microsoft/DialoGPT-medium"
+    model_name: str = ""
     max_sequence_length: int = 2048
     lora_r: int = 16
     lora_alpha: int = 32
@@ -82,6 +83,11 @@ class QLoRAProductionPipeline:
         self.config = config
         self.output_dir = Path(config.output_dir)
         self.setup_directories()
+        
+        # Set default model name from config if not provided
+        if not self.config.model_name:
+            loaded_config = get_config()
+            self.config.model_name = loaded_config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium')
         
         # Initialize tools
         self.youtube_downloader = YouTubeDownloaderTool()

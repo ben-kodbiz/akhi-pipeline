@@ -22,6 +22,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 from crewai.tools import BaseTool
+from utils.config_loader import get_config
 
 
 class AxolotlTrainerInput(BaseModel):
@@ -34,7 +35,7 @@ class AxolotlTrainerInput(BaseModel):
     )
     base_model: str = Field(
         description="Base model to fine-tune (HuggingFace model name)",
-        default="microsoft/DialoGPT-medium"
+        default=""
     )
     output_dir: str = Field(
         description="Directory to save the trained model",
@@ -141,6 +142,15 @@ class AxolotlTrainerTool(BaseTool):
         Returns:
             Configuration dictionary
         """
+        # Try to load from unified config first
+        try:
+            unified_config = get_config()
+            if unified_config and 'axolotl_training' in unified_config:
+                return unified_config['axolotl_training']
+        except Exception as e:
+            pass
+        
+        # Fallback to file-based config
         config_path = os.path.join(
             os.path.dirname(__file__), 
             '../config/crew_config.yaml'
@@ -169,7 +179,7 @@ class AxolotlTrainerTool(BaseTool):
             Path to created config file
         """
         config = {
-            'base_model': kwargs.get('base_model', 'microsoft/DialoGPT-medium'),
+            'base_model': kwargs.get('base_model') or self.config.get('default_base_model', 'microsoft/DialoGPT-medium'),
             'model_type': 'AutoModelForCausalLM',
             'tokenizer_type': 'AutoTokenizer',
             
@@ -252,7 +262,7 @@ class AxolotlTrainerTool(BaseTool):
     def _run(
         self,
         training_data_path: str = "data/training/akhi_qlora.json",
-        base_model: str = "microsoft/DialoGPT-medium",
+        base_model: str = "",
         output_dir: str = "models/akhi_qlora",
         config_file: str = "config/axolotl_config.yaml",
         num_epochs: int = 3,
@@ -295,7 +305,7 @@ class AxolotlTrainerTool(BaseTool):
             # Create Axolotl configuration
             config_path = self._create_axolotl_config(
                 training_data_path=training_data_path,
-                base_model=base_model,
+                base_model=base_model or self.config.get('default_base_model', 'microsoft/DialoGPT-medium'),
                 output_dir=output_dir,
                 config_file=config_file,
                 num_epochs=num_epochs,

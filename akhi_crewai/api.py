@@ -29,6 +29,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import uvicorn
+from utils.config_loader import get_config
 
 # Add project paths
 sys.path.append(os.path.dirname(__file__))
@@ -64,7 +65,7 @@ class SummarizeRequest(BaseModel):
 class QLoRATrainingRequest(BaseModel):
     model_name: str = Field("akhi-islamic-assistant", description="Name for the trained model")
     training_data_path: str = Field(..., description="Path to training data file")
-    base_model: str = Field("microsoft/DialoGPT-medium", description="Base model to fine-tune")
+    base_model: str = Field("", description="Base model to fine-tune")
     num_epochs: int = Field(3, description="Number of training epochs", ge=1, le=10)
     learning_rate: float = Field(0.0002, description="Learning rate", gt=0, le=0.01)
     batch_size: int = Field(1, description="Training batch size", ge=1, le=8)
@@ -125,6 +126,23 @@ class WebSocketManager:
         for connection in disconnected:
             self.disconnect(connection)
 
+
+# Load supported models from config
+try:
+    config = get_config()
+    SUPPORTED_MODELS = config.get('api', {}).get('supported_models', [
+        "microsoft/DialoGPT-medium",
+        "microsoft/DialoGPT-small", 
+        "Qwen/Qwen-1_8B-Chat",
+        "microsoft/DialoGPT-large"
+    ])
+except Exception:
+    SUPPORTED_MODELS = [
+        "microsoft/DialoGPT-medium",
+        "microsoft/DialoGPT-small",
+        "Qwen/Qwen-1_8B-Chat", 
+        "microsoft/DialoGPT-large"
+    ]
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -375,12 +393,7 @@ async def get_qlora_configs():
             status="success",
             data={
                 "default_config": config,
-                "available_models": [
-                    "microsoft/DialoGPT-medium",
-                    "microsoft/DialoGPT-small",
-                    "Qwen/Qwen-1_8B-Chat",
-                    "microsoft/DialoGPT-large"
-                ],
+                "available_models": SUPPORTED_MODELS,
                 "training_parameters": {
                     "num_epochs": {"min": 1, "max": 10, "default": 3},
                     "learning_rate": {"min": 0.0001, "max": 0.01, "default": 0.0002},

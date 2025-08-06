@@ -25,6 +25,7 @@ from typing import List, Dict, Any, Optional
 import glob
 import random
 from collections import Counter
+from utils.config_loader import get_config
 
 # Configure logging
 logging.basicConfig(
@@ -426,7 +427,7 @@ class AxolotlDatasetPreparer:
         """Generate Axolotl configuration file"""
         config = {
             # Model configuration
-            'base_model': self.config.get('base_model', 'microsoft/DialoGPT-medium'),
+            'base_model': self.config.get('base_model', self.config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium')),
             'model_type': 'AutoModelForCausalLM',
             'tokenizer_type': 'AutoTokenizer',
             
@@ -704,7 +705,7 @@ python -m axolotl.cli.merge_lora {config_path.name}
 
 The Axolotl configuration includes:
 
-- **Base Model**: {self.config.get('base_model', 'microsoft/DialoGPT-medium')}
+- **Base Model**: {self.config.get('base_model', self.config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium'))}
 - **Adapter**: QLoRA (4-bit quantization)
 - **LoRA Rank**: {self.config.get('lora_r', 16)}
 - **LoRA Alpha**: {self.config.get('lora_alpha', 32)}
@@ -826,7 +827,7 @@ The script will:
     parser.add_argument('--config', '-c', type=str, help='YAML configuration file')
     
     # Model options
-    parser.add_argument('--model', type=str, default='microsoft/DialoGPT-medium', help='Base model for fine-tuning')
+    parser.add_argument('--model', type=str, default='', help='Base model for fine-tuning')
     parser.add_argument('--max-length', type=int, default=2048, help='Maximum sequence length')
     parser.add_argument('--val-split', type=float, default=0.1, help='Validation split ratio')
     
@@ -855,7 +856,11 @@ The script will:
         if args.config:
             config = load_config_file(args.config)
         else:
-            config = {}
+            config = get_config()
+            
+        # Set default model if not provided
+        if not args.model:
+            args.model = config.get('training', {}).get('base_model', 'microsoft/DialoGPT-medium')
         
         # Override with command line arguments
         config.update({

@@ -14,6 +14,10 @@ from crewai.tools import BaseTool
 # Add the pipeline directory to the path to import existing modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../pipeline'))
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 try:
     from agents.youtube_agent import YouTubeAgent
 except ImportError:
@@ -75,26 +79,20 @@ class YouTubeSearchTool(BaseTool):
         return self._config
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
-        """Load configuration from YAML file.
+        """Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (deprecated, uses unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
-            # Return default configuration if file not found
+            config_loader = get_config()
+            return config_loader.get_youtube_config()
+        except Exception as e:
+            print(f"Warning: Could not load unified config: {e}")
+            # Return default configuration if config loading fails
             return {
                 'youtube': {
                     'search': {

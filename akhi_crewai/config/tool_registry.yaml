@@ -1,0 +1,311 @@
+# Tool Registry Configuration
+# This file configures the centralized tool registry for CrewAI
+
+registry:
+  auto_discover: true
+  tools_directory: '../tools'
+  cache_enabled: true
+  performance_monitoring: true
+  error_tracking: true
+  dependency_validation: true
+  health_check_interval: 60  # seconds
+  max_tool_instances: 50
+  cleanup_interval: 300  # 5 minutes
+
+# Tool-specific configurations
+tools:
+  youtube_search:
+    enabled: true
+    category: 'search'
+    priority: 1
+    version: '1.0.0'
+    dependencies: []
+    config:
+      max_results: 50
+      default_region: 'US'
+      api_timeout: 30
+    resource_requirements:
+      cpu_cores: 0.5
+      memory_mb: 256
+    performance_targets:
+      max_response_time: 10.0  # seconds
+      success_rate: 0.95
+
+  youtube_downloader:
+    enabled: true
+    category: 'download'
+    priority: 2
+    version: '1.0.0'
+    dependencies: ['youtube_search']
+    config:
+      output_dir: './downloads'
+      audio_format: 'mp3'
+      quality: 'best'
+      max_file_size: '500MB'
+    resource_requirements:
+      cpu_cores: 1.0
+      memory_mb: 512
+      disk_space_mb: 1024
+    performance_targets:
+      max_response_time: 300.0  # 5 minutes
+      success_rate: 0.90
+
+  transcriber:
+    enabled: true
+    category: 'transcription'
+    priority: 3
+    version: '1.0.0'
+    dependencies: ['youtube_downloader']
+    config:
+      model_name: 'openai/whisper-large-v3'
+      device: 'auto'
+      batch_size: 1
+      language: 'auto'
+      task: 'transcribe'
+    resource_requirements:
+      cpu_cores: 2.0
+      memory_mb: 2048
+      gpu_memory_mb: 1024  # if available
+    performance_targets:
+      max_response_time: 600.0  # 10 minutes
+      success_rate: 0.95
+
+  chunker:
+    enabled: true
+    category: 'processing'
+    priority: 4
+    version: '1.0.0'
+    dependencies: ['transcriber']
+    config:
+      chunk_size: 1000
+      chunk_overlap: 200
+      separator: '\n\n'
+      preserve_sentences: true
+      strategy: 'semantic'
+    resource_requirements:
+      cpu_cores: 0.5
+      memory_mb: 512
+    performance_targets:
+      max_response_time: 30.0
+      success_rate: 0.99
+
+  embedder:
+    enabled: true
+    category: 'embedding'
+    priority: 5
+    version: '1.0.0'
+    dependencies: ['chunker']
+    config:
+      model_name: 'sentence-transformers/all-MiniLM-L6-v2'
+      device: 'auto'
+      batch_size: 32
+      normalize_embeddings: true
+      show_progress: true
+    resource_requirements:
+      cpu_cores: 1.0
+      memory_mb: 1024
+      gpu_memory_mb: 512  # if available
+    performance_targets:
+      max_response_time: 120.0  # 2 minutes
+      success_rate: 0.98
+
+  faiss_store:
+    enabled: true
+    category: 'storage'
+    priority: 6
+    version: '1.0.0'
+    dependencies: ['embedder']
+    config:
+      index_type: 'IndexFlatIP'
+      save_index: true
+      index_dir: './faiss_indices'
+      overwrite: false
+      nlist: 100
+      m: 8
+    resource_requirements:
+      cpu_cores: 1.0
+      memory_mb: 1024
+      disk_space_mb: 2048
+    performance_targets:
+      max_response_time: 60.0
+      success_rate: 0.99
+
+  faiss_query:
+    enabled: true
+    category: 'query'
+    priority: 7
+    version: '1.0.0'
+    dependencies: ['faiss_store', 'embedder']
+    config:
+      k: 10
+      search_type: 'similarity'
+      threshold: 0.7
+      distance_metric: 'cosine'
+      include_metadata: true
+      include_embeddings: false
+    resource_requirements:
+      cpu_cores: 0.5
+      memory_mb: 512
+    performance_targets:
+      max_response_time: 5.0
+      success_rate: 0.99
+
+  summarizer:
+    enabled: true
+    category: 'generation'
+    priority: 8
+    version: '1.0.0'
+    dependencies: ['faiss_query']
+    config:
+      model_name: 'microsoft/DialoGPT-medium'
+      max_length: 500
+      strategy: 'extractive'
+      preserve_islamic_terms: true
+      include_key_points: true
+    resource_requirements:
+      cpu_cores: 1.0
+      memory_mb: 1024
+      gpu_memory_mb: 1024  # if available
+    performance_targets:
+      max_response_time: 60.0
+      success_rate: 0.95
+
+  answer_generator:
+    enabled: true
+    category: 'generation'
+    priority: 9
+    version: '1.0.0'
+    dependencies: ['faiss_query']
+    config:
+      model_name: 'microsoft/DialoGPT-medium'
+      max_answer_length: 1000
+      include_citations: true
+      citation_style: 'academic'
+      confidence_threshold: 0.7
+      islamic_context_aware: true
+      language: 'auto'
+    resource_requirements:
+      cpu_cores: 1.0
+      memory_mb: 1024
+      gpu_memory_mb: 1024  # if available
+    performance_targets:
+      max_response_time: 45.0
+      success_rate: 0.95
+
+  model_deployer:
+    enabled: true
+    category: 'deployment'
+    priority: 10
+    version: '1.0.0'
+    dependencies: []
+    config:
+      deployment_type: 'local'
+      model_format: 'qlora'
+      optimization_level: 'balanced'
+      auto_scaling: false
+    resource_requirements:
+      cpu_cores: 2.0
+      memory_mb: 4096
+      gpu_memory_mb: 2048  # if available
+      disk_space_mb: 5120
+    performance_targets:
+      max_response_time: 1800.0  # 30 minutes
+      success_rate: 0.90
+
+# Global performance and monitoring settings
+monitoring:
+  enabled: true
+  metrics_collection_interval: 30  # seconds
+  performance_history_retention: 7  # days
+  alert_thresholds:
+    response_time_multiplier: 2.0  # Alert if response time > 2x target
+    success_rate_threshold: 0.85   # Alert if success rate < 85%
+    error_rate_threshold: 0.15     # Alert if error rate > 15%
+  
+  # Health check configuration
+  health_checks:
+    enabled: true
+    interval: 60  # seconds
+    timeout: 10   # seconds
+    retry_count: 3
+    failure_threshold: 3  # consecutive failures before marking unhealthy
+
+# Caching configuration
+caching:
+  enabled: true
+  cache_type: 'memory'  # memory, redis, file
+  max_cache_size: 1000  # number of items
+  ttl: 3600  # time to live in seconds
+  cleanup_interval: 300  # seconds
+
+# Security and validation
+security:
+  validate_tool_signatures: true
+  sandbox_execution: false  # Enable for production
+  max_execution_time: 3600  # 1 hour
+  resource_limits:
+    max_memory_per_tool: 2048  # MB
+    max_cpu_per_tool: 2.0      # cores
+    max_disk_per_tool: 5120    # MB
+
+# Logging configuration
+logging:
+  level: 'INFO'
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  file_logging:
+    enabled: true
+    log_file: './logs/tool_registry.log'
+    max_file_size: 10  # MB
+    backup_count: 5
+  
+  # Tool-specific logging
+  tool_logging:
+    enabled: true
+    log_tool_calls: true
+    log_performance_metrics: true
+    log_errors: true
+    log_level: 'DEBUG'
+
+# Development and testing settings
+development:
+  debug_mode: false
+  mock_tools: false
+  test_mode: false
+  profiling_enabled: false
+  
+  # Tool development settings
+  auto_reload: false
+  validate_schemas: true
+  strict_dependencies: true
+
+# Integration settings
+integration:
+  crewai:
+    auto_register_tools: true
+    tool_prefix: 'akhi_'
+    validate_compatibility: true
+  
+  external_apis:
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst_limit: 10
+    
+    retry_policy:
+      max_retries: 3
+      backoff_factor: 2.0
+      max_backoff: 60.0
+
+# Backup and recovery
+backup:
+  enabled: true
+  backup_interval: 3600  # 1 hour
+  backup_location: './backups/tool_registry'
+  max_backups: 24  # keep 24 hours of backups
+  
+  # What to backup
+  backup_items:
+    - 'tool_configurations'
+    - 'performance_metrics'
+    - 'error_logs'
+    - 'usage_statistics'

@@ -18,6 +18,10 @@ from datetime import datetime
 # Add the pipeline directory to the path to import existing modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../pipeline'))
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 try:
     from agents.transcriber import Transcriber
 except ImportError:
@@ -65,32 +69,34 @@ class TranscriptionTool(BaseTool):
         return self._config
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
-        """Load configuration from YAML file.
+        """Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (ignored, using unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
+            config_loader = get_config()
+            return {
+                'transcription': config_loader.get_transcription_config()
+            }
+        except Exception as e:
+            print(f"Warning: Could not load config: {e}")
             # Return default configuration if file not found
             return {
                 'transcription': {
+                    'model_name': 'openai/whisper-large-v3',
                     'model_size': 'base',
                     'device': 'auto',
                     'language': 'auto',
+                    'task': 'transcribe',
+                    'batch_size': 1,
+                    'chunk_length': 30,
+                    'return_timestamps': True,
                     'output_dir': 'data/transcripts',
+                    'output_format': 'json',
                     'include_timestamps': True,
                     'word_timestamps': False
                 }
@@ -161,9 +167,7 @@ class TranscriptionTool(BaseTool):
         if custom_dir:
             output_dir = custom_dir
         else:
-            output_dir = self._config.get('transcription', {}).get(
-                'output_dir', 'data/transcripts'
-            )
+            output_dir = self._config.get('transcription', {}).get('output_dir', 'data/transcripts')
         
         # Create directory if it doesn't exist
         os.makedirs(output_dir, exist_ok=True)

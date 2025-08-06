@@ -35,6 +35,12 @@ try:
 except ImportError:
     TRANSFORMERS_AVAILABLE = False
 
+# Import unified config loader
+try:
+    from utils.config_loader import get_config
+except ImportError:
+    get_config = None
+
 
 class ModelValidatorInput(BaseModel):
     """
@@ -46,7 +52,7 @@ class ModelValidatorInput(BaseModel):
     )
     base_model_name: str = Field(
         description="Base model name used for training",
-        default="microsoft/DialoGPT-medium"
+        default=""
     )
     test_prompts_file: str = Field(
         description="Path to test prompts JSON file",
@@ -125,6 +131,16 @@ class ModelValidatorTool(BaseTool):
         Returns:
             Configuration dictionary
         """
+        # Try to load from unified config first
+        if get_config:
+            try:
+                unified_config = get_config()
+                if unified_config and 'model_validation' in unified_config:
+                    return unified_config['model_validation']
+            except Exception:
+                pass
+        
+        # Fallback to file-based config
         config_path = os.path.join(
             os.path.dirname(__file__), 
             '../config/crew_config.yaml'
@@ -223,7 +239,7 @@ class ModelValidatorTool(BaseTool):
     def _run(
         self,
         model_path: str = "models/akhi_qlora",
-        base_model_name: str = "microsoft/DialoGPT-medium",
+        base_model_name: str = "",
         test_prompts_file: str = "data/test/islamic_test_prompts.json",
         max_length: int = 256,
         temperature: float = 0.7,
@@ -253,6 +269,11 @@ class ModelValidatorTool(BaseTool):
                     "❌ Transformers library not available. Please install with:\n"
                     "pip install transformers torch peft bitsandbytes"
                 )
+            
+            # Get base model name from config if not provided
+            if not base_model_name:
+                config = self.config or {}
+                base_model_name = config.get('base_model', 'microsoft/DialoGPT-medium')
             
             # Initialize validation report
             validation_report = {

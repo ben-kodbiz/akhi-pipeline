@@ -24,6 +24,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../tools'))
 from transcriber import TranscriptionTool
 from youtube_downloader import YouTubeDownloaderTool
 
+# Import unified config loader
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../'))
+from utils.config_loader import get_config
+
 
 class TranscriberAgent:
     """
@@ -50,64 +54,56 @@ class TranscriberAgent:
     
     def _load_config(self, config_path: Optional[str] = None) -> Dict[str, Any]:
         """
-        Load configuration from YAML file.
+        Load configuration from unified config.yaml.
         
         Args:
-            config_path: Path to configuration file
+            config_path: Path to configuration file (ignored, using unified config)
             
         Returns:
             Configuration dictionary
         """
-        if config_path is None:
-            config_path = os.path.join(
-                os.path.dirname(__file__), 
-                '../config/crew_config.yaml'
-            )
-        
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-            return config
-        except FileNotFoundError:
-            # Fallback configuration
+            config_loader = get_config()
             return {
-                'local_llm': {
-                    'model_name': 'lm_studio/qwen-3-14b',
-                    'base_url': 'http://192.168.0.74:1234/v1',
-                    'api_key': None,
-                    'temperature': 0.7,
-                    'max_tokens': 2048
-                },
-                'agents': {
-                    'transcriber': {
-                        'role': 'Audio-to-Text Transcriber',
-                        'goal': 'Download and transcribe YouTube videos with high accuracy',
-                        'backstory': 'You are a professional audio processing specialist with expertise in speech recognition and transcription. You ensure accurate and clean transcripts.',
-                        'max_iter': 3,
-                        'max_execution_time': 600,
-                        'verbose': True,
-                        'allow_delegation': False
-                    }
-                },
-                'transcription': {
-                    'model_size': 'base',
-                    'device': 'auto',
-                    'language': 'auto',
-                    'output_dir': 'data/transcripts',
-                    'include_timestamps': True,
-                    'word_timestamps': False
-                },
-                'youtube': {
-                    'download': {
-                        'audio_format': 'mp3',
-                        'audio_quality': '192',
-                        'output_dir': 'data/audio',
-                        'max_filesize': '500M',
-                        'retry_attempts': 3,
-                        'timeout': 300
-                    }
-                }
+                'llm': config_loader.get_llm_config(),
+                'agents': config_loader.get_crewai_config().get('agents', {}),
+                'transcription': config_loader.get_transcription_config()
             }
+        except Exception as e:
+            print(f"Warning: Could not load config: {e}")
+        
+        # Fallback configuration
+        return {
+            'llm': {
+                'model_name': 'lm_studio/qwen-3-14b',
+                'base_url': 'http://localhost:1234/v1',
+                'api_key': None,
+                'temperature': 0.7,
+                'max_tokens': 2048
+            },
+            'agents': {
+                'transcriber': {
+                    'role': 'Audio Transcription Specialist',
+                    'goal': 'Convert audio content to accurate text transcriptions',
+                    'backstory': 'Expert in speech recognition and audio processing',
+                    'verbose': True,
+                    'allow_delegation': False,
+                    'max_iter': 3,
+                    'memory': True
+                }
+            },
+            'transcription': {
+                'model_name': 'openai/whisper-large-v3',
+                'device': 'auto',
+                'language': 'auto',
+                'task': 'transcribe',
+                'batch_size': 1,
+                'chunk_length': 30,
+                'return_timestamps': True,
+                'output_dir': 'data/transcripts',
+                'output_format': 'json'
+            }
+        }
     
     def _setup_llm(self):
         """
